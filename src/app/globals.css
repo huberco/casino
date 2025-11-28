@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@plugin './hero.ts';
+@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #030E14;
+  --background-alt: #04141C;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
+  --color-foreground: var(--foreground);
+  --color-primary: #A3E635;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #030E14;
+    --background-alt: #04141C;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    opacity: 0;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0);
+    background-color: rgba(34, 197, 94, 0);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(7, 41, 19, 0.4);
+    background-color: rgba(7, 41, 19, 0.4);
+  }
+}
+
+
+
+/* Needed for 3D flip */
+.perspective {
+  perspective: 1000px;
+}
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom animation */
+@keyframes flip {
+  0% {
+    transform: rotateY(0);
+  }
+  100% {
+    transform: rotateY(1080deg); /* 3 spins */
+  }
+}
+.animate-flip {
+  animation: flip 2s ease-in-out;
+}
+
+/* Infinite coin flip animation */
+@keyframes coin-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+.animate-coin-flip {
+  animation: coin-flip 2s ease-in-out infinite;
+}
+
+/* 3D perspective utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
