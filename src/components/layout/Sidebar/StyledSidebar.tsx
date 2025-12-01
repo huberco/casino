@@ -4,13 +4,13 @@ export const StyledOpenedSidebar = styled.div`
   width: 240px;
   height: calc(100vh - 65px);
   flex: 0 0 auto;
-  background: #1a1d29;
+  background: #04141C;
   top: 65px;
   left: 0;
   scroll-padding-top: 9rem;
 
   position: fixed;
-  z-index: 10;
+  z-index: 20;
   transform: translateZ(0px);
 
   /* Define the common styles */
@@ -20,7 +20,7 @@ export const StyledOpenedSidebar = styled.div`
     flex-direction: column;
     padding: 20px 16px;
     height: 100%;
-    background-color: rgb(31, 35, 48);
+    background-color: #04141C;
     overflow: hidden auto;
 
     &::-webkit-scrollbar {
@@ -220,7 +220,7 @@ export const StyledClosedSidebar = styled.div`
   width: 55px;
   position: fixed;
   top: 64px;
-  z-index: 10;
+  z-index: 20;
 
   .link {
     position: relative;

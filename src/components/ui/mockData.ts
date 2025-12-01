@@ -36,7 +36,7 @@ export const SECTIONS = [
             text: "Live Casino",
             sidebarUrl: "/live-casino",
           },
-          { icon: "/assets/images/Roulette.svg", text: "Roulette", sidebarUrl: "/roulette" },
+          { icon: "/assets/images/Roulette.svg", text: "Roulette", sidebarUrl: "/game/roulette" },
           { icon: "/assets/images/Blackjack.svg", text: "Blackjack", sidebarUrl: "/blackjack" },
           {
             icon: "/assets/images/WithSidebets.svg",

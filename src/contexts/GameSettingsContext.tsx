@@ -44,6 +44,10 @@ interface GameSettingsContextType {
   selectedOption: string | null;
   setSelectedOption: (option: string | null) => void;
   setIsSidebarOpen: (isOpen: boolean) => void;
+  isChatBoxOpen: boolean;
+  isChatBoxCollapsed: boolean;
+  setIsChatBoxOpen: (isOpen: boolean) => void;
+  setIsChatBoxCollapsed: (isCollapsed: boolean) => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextType | undefined>(undefined);
@@ -61,7 +65,9 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { isConnected, emit, registerListener, unregisterListener } = useWebSocket();
-
+  const [isChatBoxOpen, setIsChatBoxOpen] = useState(false);
+  const [isChatBoxCollapsed, setIsChatBoxCollapsed] = useState(false);
+  
   // Store callback functions for cleanup
   const settingsCallback = useCallback((data: any) => {
     console.log('🔄 Game settings loaded', data);
@@ -205,13 +211,17 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
     isMobileScreen,
     isTabletScreen,
     isSidebarOpen,
+    isChatBoxOpen,
+    isChatBoxCollapsed,
     selectedOption,
     error,
     isGameEnabled,
     getMaintenanceMessage,
     refreshSettings,
     setSelectedOption,
-    setIsSidebarOpen
+    setIsSidebarOpen,
+    setIsChatBoxOpen,
+    setIsChatBoxCollapsed
   };
 
   const handleWindowResize = () => {

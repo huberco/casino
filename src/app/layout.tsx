@@ -12,6 +12,9 @@ import Script from "next/script";
 import NavBar from "@/components/layout/NavBar/NavBar";
 import { GlobalStyle } from "./globalStyle";
 import SideBar from "@/components/layout/Sidebar/SideBar";
+import ScrollToTop from "@/components/ScrollToTop";
+import PageLayout from "@/components/layout/Layout";
+import PageLoader from "@/components/layout/PageLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scrollbar-hide">
-    <head>
+      <head>
         {/* Replace with your GA4 Measurement ID */}
         <Script
           id="ga4"
@@ -56,24 +59,15 @@ export default function RootLayout({
       >
         <GlobalStyle />
         <Providers>
+          <PageLoader />
           <div className="min-h-screen scrollbar-hide relative ">
             {/* <AnimatedGridBackground /> */}
             <NavBar />
             <SideBar />
-            <div>
-              {/* <ChatView /> */}
-              <main className="relative z-10 pt-40 lg:pl-[300px] hidden">
-                {children}
-                {/* Development-only status components */}
-                {process.env.NODE_ENV === 'development' && (
-                  <>
-                    {/* <SocketStatus /> */}
-                    {/* <AuthStatus /> */}
-                  </>
-                )}
-                <Footer />
-              </main>
-            </div>
+            <ScrollToTop />
+            <PageLayout>
+              {children}
+            </PageLayout>
           </div>
         </Providers>
       </body>
