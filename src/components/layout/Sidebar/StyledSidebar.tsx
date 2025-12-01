@@ -8,7 +8,7 @@ export const StyledOpenedSidebar = styled.div`
   top: 65px;
   left: 0;
   scroll-padding-top: 9rem;
-
+  border-right: 1px solid #36415380;
   position: fixed;
   z-index: 20;
   transform: translateZ(0px);
@@ -69,16 +69,16 @@ export const StyledOpenedSidebar = styled.div`
     user-select: none;
 
     &:hover {
-      background: rgba(203, 215, 255, 0.03);
+      background: #1e2939;
     }
   }
 
   .opened-dropdown {
-    background: rgb(26, 29, 41) !important;
+    background: #1e2939;
   }
 
   .option-active {
-    background: rgba(203, 215, 255, 0.03);
+    background: #1e2939;
   }
 
   .numbers-spacer {
@@ -216,12 +216,12 @@ export const StyledClosedSidebar = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #1f2330;
+  background: #04141C;
   width: 55px;
   position: fixed;
   top: 64px;
   z-index: 20;
-
+  border-right: 1px solid #36415380;
   .link {
     position: relative;
     display: flex;

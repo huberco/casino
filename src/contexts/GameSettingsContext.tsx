@@ -67,7 +67,7 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
   const { isConnected, emit, registerListener, unregisterListener } = useWebSocket();
   const [isChatBoxOpen, setIsChatBoxOpen] = useState(false);
   const [isChatBoxCollapsed, setIsChatBoxCollapsed] = useState(false);
-  
+
   // Store callback functions for cleanup
   const settingsCallback = useCallback((data: any) => {
     console.log('🔄 Game settings loaded', data);
@@ -225,26 +225,31 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
   };
 
   const handleWindowResize = () => {
-    if (window.innerWidth < 576) {
+    const width = window.innerWidth;
+    
+    if (width < 576) {
       setIsMobileScreen(true);
+      setIsTabletScreen(false);
+      // Close sidebar on mobile
+      setIsSidebarOpen(false);
+    } else if (width < 1024) {
+      setIsMobileScreen(false);
+      setIsTabletScreen(true);
+      // Close sidebar on tablet (collapsed state)
+      setIsSidebarOpen(false);
     } else {
       setIsMobileScreen(false);
-    }
-
-    if (window.innerWidth < 1024) {
-      setIsTabletScreen(true);
-    } else {
       setIsTabletScreen(false);
+      // Desktop: keep sidebar open by default
+      if (!isSidebarOpen) {
+        setIsSidebarOpen(true);
+      }
     }
   };
 
   useEffect(() => {
-    // Call handleWindowResize when the component mounts to set isTabletScreen initially
+    // Call handleWindowResize when the component mounts to set screen sizes initially
     handleWindowResize();
-
-    if (!isTabletScreen) {
-      setIsSidebarOpen(true);
-    }
 
     setSelectedOption(location.pathname);
 
@@ -256,6 +261,20 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
       window.removeEventListener("resize", handleWindowResize);
     };
   }, []);
+
+  // Update sidebar state when screen size changes
+  useEffect(() => {
+    if (isMobileScreen) {
+      // Mobile: close sidebar
+      setIsSidebarOpen(false);
+    } else if (isTabletScreen) {
+      // Tablet: close sidebar (collapsed state)
+      setIsSidebarOpen(false);
+    } else {
+      // Desktop (>= 1024px): open sidebar by default
+      setIsSidebarOpen(true);
+    }
+  }, [isMobileScreen, isTabletScreen, setIsSidebarOpen]);
 
   return (
     <GameSettingsContext.Provider value={value}>

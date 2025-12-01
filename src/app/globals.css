@@ -97,3 +97,30 @@ body {
 .perspective-1000 {
   perspective: 1000px;
 }
+
+/* For Chrome, Edge, Safari, Brave */
+::-webkit-scrollbar {
+  width: 4px;       /* thin scrollbar */
+  height: 4px;      /* for horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;   /* transparent track */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2); /* subtle thumb */
+  border-radius: 999px;                      /* rounded */
+  border: 1px solid transparent;             /* keep thin shape */
+}
+
+/* Optional: on hover */
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;                   /* thin scrollbar */
+  scrollbar-color: rgba(255,255,255,0.2) transparent; /* thumb | track */
+}

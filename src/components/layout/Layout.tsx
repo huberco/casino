@@ -7,12 +7,12 @@ interface LayoutProps {
 }
 
 const PageLayout = ({ children }: LayoutProps) => {
-    const { isSidebarOpen, isChatBoxOpen, isChatBoxCollapsed } = useGameSettings()
-    const [isLargeScreen, setIsLargeScreen] = useState(false)
+    const { isSidebarOpen, isChatBoxOpen, isChatBoxCollapsed, isMobileScreen, isTabletScreen } = useGameSettings()
+    const [screenWidth, setScreenWidth] = useState(0)
     
     useEffect(() => {
         const checkScreenSize = () => {
-            setIsLargeScreen(window.innerWidth >= 1024)
+            setScreenWidth(window.innerWidth)
         }
         
         checkScreenSize()
@@ -21,7 +21,21 @@ const PageLayout = ({ children }: LayoutProps) => {
         return () => window.removeEventListener('resize', checkScreenSize)
     }, [])
     
-    const paddingLeft = isLargeScreen ? (isSidebarOpen ? '240px' : '55px') : '0'
+    // Calculate padding based on screen size:
+    // Mobile (< 576px): 0 (sidebar hidden)
+    // Tablet (576px - 1023px): 55px (sidebar collapsed/closed)
+    // Desktop (>= 1024px): 240px if open, 55px if closed
+    const getPaddingLeft = () => {
+        if (isMobileScreen || screenWidth < 576) {
+            return '0' // Mobile: no padding, sidebar hidden
+        } else if (isTabletScreen || (screenWidth >= 576 && screenWidth < 1024)) {
+            return '55px' // Tablet: collapsed sidebar
+        } else {
+            return isSidebarOpen ? '240px' : '55px' // Desktop: open or closed
+        }
+    }
+    
+    const paddingLeft = getPaddingLeft()
     const paddingRight = isChatBoxOpen ? (isChatBoxCollapsed ? '248px' : '340px') : '0'
     return (
         <div 

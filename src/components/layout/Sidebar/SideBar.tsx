@@ -40,6 +40,7 @@ const SideBar = () => {
   const [sections, setSections] = useState<Section[]>(SECTIONS as Section[]);
   const {
     isTabletScreen,
+    isMobileScreen,
     selectedOption,
     isSidebarOpen,
     setSelectedOption,
@@ -112,7 +113,8 @@ const SideBar = () => {
     setSections(updatedSections);
   };
 
-  if (isTabletScreen && !isSidebarOpen) return null;
+  // Hide sidebar completely on mobile screens (< 576px)
+  if (isMobileScreen) return null;
 
   return isSidebarOpen ? (
     <StyledOpenedSidebar>
