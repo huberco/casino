@@ -7,12 +7,12 @@ import Banner from "@/components/common/Banner/Banner";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Button from "@/components/Buttons/Button";
 import StepsSection from "@/components/common/StepSection/StepsSection";
+import LiveWinsSection from "@/components/common/WinnerCard/LiveWinsSection";
+import CasinoSection from "@/components/common/CasinoSection/CasinoSection";
 // import BonusCardSection from "../../Common/BonusCard/BonusCardSection";
 // import BoxesSection from "../../Common/BoxCard/BoxesSection";
-// import CasinoSection from "../../Common/CasinoSection/CasinoSection";
 // import CryptoSection from "../../Common/CryptoCard/CryptoSection";
 // import NTFSection from "../../Common/NFTCard/NTFSectionWithHeader";
-// import LiveWinsSection from "../../Common/WinnerCard/LiveWinsSection";
 // import NewTableView from "./NewTableView";
 
 const steps = [
@@ -32,7 +32,7 @@ const steps = [
 
 const GamePage = ({ update }: { update: () => void }) => {
   return (
-    <div className="@container">
+    <div className="container">
       <Banner />
 
       {/* Homepage main image area */}
@@ -45,11 +45,11 @@ const GamePage = ({ update }: { update: () => void }) => {
 
       {/* image area frame main */}
 
-      {/* <LiveWinsSection title="Live wins" hasFilters={true} /> */}
+      <LiveWinsSection title="Live wins" hasFilters={true} />
 
       {/* casino view */}
 
-      {/* <CasinoSection /> */}
+      <CasinoSection />
 
       {/* Crypto view */}
 

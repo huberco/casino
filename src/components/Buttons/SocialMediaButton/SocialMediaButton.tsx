@@ -2,6 +2,7 @@
 import React from "react";
 import { StyledSocialMediaButton } from "./StyledSocialMediaButton";
 import { Image } from "@heroui/react";
+import SvgIcon from "@/components/common/SvgIcon/SvgIcon";
 
 const SocialMediaButton = ({ socialIcon: Icon, socialName, url }: { socialIcon: string, socialName: string, url: string }) => {
   const handleClick = () => {
@@ -11,7 +12,14 @@ const SocialMediaButton = ({ socialIcon: Icon, socialName, url }: { socialIcon: 
 
   return (
     <StyledSocialMediaButton onClick={handleClick}>
-      <Image src={Icon} alt={socialName} className="icon-img" style={{ width: "17px", height: "17px" }} />
+      <SvgIcon
+        src={Icon}
+        alt="Close sidebar"
+        width="17px"
+        height="17px"
+        color="#b1b6c6"
+        className="hover:opacity-80 transition-opacity"
+      />
       <p className="btn-text">{socialName}</p>
     </StyledSocialMediaButton>
   );
