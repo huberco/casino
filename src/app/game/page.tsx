@@ -6,12 +6,12 @@ import React from "react";
 import Banner from "@/components/common/Banner/Banner";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import Button from "@/components/Buttons/Button";
+import StepsSection from "@/components/common/StepSection/StepsSection";
 // import BonusCardSection from "../../Common/BonusCard/BonusCardSection";
 // import BoxesSection from "../../Common/BoxCard/BoxesSection";
 // import CasinoSection from "../../Common/CasinoSection/CasinoSection";
 // import CryptoSection from "../../Common/CryptoCard/CryptoSection";
 // import NTFSection from "../../Common/NFTCard/NTFSectionWithHeader";
-// import StepsSection from "../../Common/StepSection/StepsSection";
 // import LiveWinsSection from "../../Common/WinnerCard/LiveWinsSection";
 // import NewTableView from "./NewTableView";
 
@@ -37,11 +37,11 @@ const GamePage = ({ update }: { update: () => void }) => {
 
       {/* Homepage main image area */}
 
-      {/* <StepsSection
+      <StepsSection
         hasMarginBottom={true}
         steps={steps}
         className="@xl:block hidden"
-      /> */}
+      />
 
       {/* image area frame main */}
 
