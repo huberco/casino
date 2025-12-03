@@ -24,3 +24,4 @@ const ArrowIcons: React.FC<ArrowIconsProps> = ({ scrollLeft, scrollRight }) => {
 
 export default ArrowIcons;
 
+

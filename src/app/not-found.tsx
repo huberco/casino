@@ -32,7 +32,7 @@ export default function NotFound() {
 
         {/* Description */}
         <p className="text-lg text-[#b1b6c6] mb-8 max-w-md mx-auto">
-          Oops! The page you're looking for seems to have vanished into the void. 
+          Oops! The page you&apos;re looking for seems to have vanished into the void. 
           It might have been moved, deleted, or never existed.
         </p>
 

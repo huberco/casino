@@ -15,3 +15,4 @@ export const StyledSlider = styled.div`
   gap: 12px;
 `;
 
+

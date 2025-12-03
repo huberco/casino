@@ -120,7 +120,7 @@ const SideBar = () => {
     <StyledOpenedSidebar>
       <div className="sidebar-content">
         <div>
-          <Image src="/assets/images/AK BALANCE.svg" width={"100%"} />
+          <Image src="/assets/images/AK BALANCE.svg" width={"100%"} alt="Balance" />
         </div>
 
         {sections.map((section, sectionIndex) => (
@@ -198,10 +198,10 @@ const SideBar = () => {
           <Button className="buy-crypto">Buy Crypto</Button>
 
           <div className="payment-methods">
-            <Image src="/assets/images/Frame (18).svg" width={"100%"} />
-            <Image src="/assets/images/Frame (19).svg" width={"100%"} />
-            <Image src="/assets/images/Frame (20).svg" width={"100%"} />
-            <Image src="/assets/images/Frame (21).svg" width={"100%"} />
+            <Image src="/assets/images/Frame (18).svg" width={"100%"} alt="Visa" />
+            <Image src="/assets/images/Frame (19).svg" width={"100%"} alt="Debit" />
+            <Image src="/assets/images/Frame (20).svg" width={"100%"} alt="Pay" />
+            <Image src="/assets/images/Frame (21).svg" width={"100%"} alt="Google Pay" />
           </div>
         </div>
       </div>

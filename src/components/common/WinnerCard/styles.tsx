@@ -106,3 +106,4 @@ export const StyledCardsContainer = styled.div`
   gap: 12px;
 `;
 
+

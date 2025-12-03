@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyledCryptoCoin } from "@/components/common/CryptoFuturesCoins/styles";
 import { Image } from "@heroui/react";
+import Link from "next/link";
 
 interface CryptoCoin {
   icon: string;
@@ -133,7 +134,7 @@ const CryptoFuturesCoins = () => {
             <div className="no-results">No results</div>
           ) : (
             filteredCoins.map((coin, index) => (
-              <a
+              <Link
                 key={index}
                 className="coin-container"
                 href="/"
@@ -164,7 +165,7 @@ const CryptoFuturesCoins = () => {
                     fillRule="evenodd"
                   ></path>
                 </svg>
-              </a>
+              </Link>
             ))
           )}
         </div>

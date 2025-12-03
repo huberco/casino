@@ -14,3 +14,4 @@ const Slider: React.FC<SliderProps> = ({ CardsComponent, containerRef }) => {
 
 export default Slider;
 
+
