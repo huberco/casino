@@ -8,6 +8,7 @@ import AnimatedText from '@/components/AnimatedText'
 import { useGameStatus } from '@/hooks/useGameStatus'
 import GameCard from '@/components/cards/GameCard'
 import { FaChartLine } from 'react-icons/fa6'
+import GamePage from './game/page'
 export default function Home() {
   const router = useRouter()
   const { gameStatuses, loading, error, refetch } = useGameStatus();
@@ -76,48 +77,49 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background-alt to-background">
-      {/* Hero Section */}
-      <div className="container mx-auto py-16 px-8">
-        <div className="text-center mb-16">
-          <AnimatedText
-            text="SpinX Games"
-            className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-b from-primary to-primary/40 bg-clip-text text-transparent"
-            type="typewriter"
-            duration={0.1}
-            delay={0.5}
-            stagger={0.1}
-          />
-          <AnimatedText
-            text="Experience the thrill of provably fair gaming with our collection of exciting games. Play, win, and enjoy transparent gameplay."
-            className="md:text-xl text-white/50 max-w-2xl mx-auto mb-8"
-            type="fade"
-            duration={0.3}
-            delay={2.0}
-            stagger={0.01}
-          />
-          <div className="flex justify-center gap-4 text-sm text-gray-400">
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Provably Fair
-            </span>
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Instant Withdrawals
-            </span>
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              24/7 Support
-            </span>
-          </div>
-        </div>
-        {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-7xl mx-auto px-8">
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} online={gameStatuses?.gameStatuses?.find((status: any) => status.gameType === game.id)?.activePlayers || 0} />
-          ))}
-        </div>
-      </div>
-    </div>
+    <GamePage />
+    // <div className="min-h-screen bg-gradient-to-br from-background via-background-alt to-background">
+    //   {/* Hero Section */}
+    //   <div className="container mx-auto py-16 px-8">
+    //     <div className="text-center mb-16">
+    //       <AnimatedText
+    //         text="SpinX Games"
+    //         className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-b from-primary to-primary/40 bg-clip-text text-transparent"
+    //         type="typewriter"
+    //         duration={0.1}
+    //         delay={0.5}
+    //         stagger={0.1}
+    //       />
+    //       <AnimatedText
+    //         text="Experience the thrill of provably fair gaming with our collection of exciting games. Play, win, and enjoy transparent gameplay."
+    //         className="md:text-xl text-white/50 max-w-2xl mx-auto mb-8"
+    //         type="fade"
+    //         duration={0.3}
+    //         delay={2.0}
+    //         stagger={0.01}
+    //       />
+    //       <div className="flex justify-center gap-4 text-sm text-gray-400">
+    //         <span className="flex items-center gap-2">
+    //           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+    //           Provably Fair
+    //         </span>
+    //         <span className="flex items-center gap-2">
+    //           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+    //           Instant Withdrawals
+    //         </span>
+    //         <span className="flex items-center gap-2">
+    //           <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+    //           24/7 Support
+    //         </span>
+    //       </div>
+    //     </div>
+    //     {/* Games Grid */}
+    //     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-7xl mx-auto px-8">
+    //       {games.map((game) => (
+    //         <GameCard key={game.id} game={game} online={gameStatuses?.gameStatuses?.find((status: any) => status.gameType === game.id)?.activePlayers || 0} />
+    //       ))}
+    //     </div>
+    //   </div>
+    // </div>
   )
 }

@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SPINX - Blockchain Gaming Platform",
+  title: "Bet366",
   description: "The next generation of blockchain gaming with futuristic experiences and real rewards.",
 };
 

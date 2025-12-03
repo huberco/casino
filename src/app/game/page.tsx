@@ -32,7 +32,7 @@ const steps = [
 
 const GamePage = () => {
   return (
-    <div className="container">
+    <div className="@container max-w-[1170px] w-full mx-auto px-6 py-12">
       <Banner />
 
       {/* Homepage main image area */}

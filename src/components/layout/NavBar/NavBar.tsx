@@ -4,9 +4,9 @@ import React, { useContext } from "react";
 //assets
 import FULL_LOGO from "../../../../assets/LOGO Gamblify/Full LOGO.png";
 import SMALL_LOGO_NO_BG from "../../../../assets/LOGO Gamblify/LOGO PNG.png";
+import ChatBox from "@/components/common/ChatBox/ChatBox";
 // import SMALL_LOGO_BLACK_BG from "../../../../assets/LOGO Gamblify/LOGO.png";
 // import { ReactComponent as MESSAGE_ICON } from "../../../../assets/images/message.svg";
-// import ChatBox from "../../ChatBox/ChatBox";
 
 // import RegisterModal from "../../../Common/Modals/RegisterModal";
 // import AccountButton from "../AccountButton/AccountButton";
@@ -33,20 +33,19 @@ const NavBar = () => {
   // } = useContext(AppContext);
 
   const { user } = useAuth();
-  const  { isTabletScreen, isMobileScreen, isSidebarOpen, selectedOption } = useGameSettings();
+  const  { isTabletScreen, isMobileScreen, isSidebarOpen, selectedOption, isChatBoxOpen, setIsChatBoxOpen } = useGameSettings();
 
   return (
     <StyledNavBar>
       <div
-        className="h-16 flex justify-between items-center p-3"
+        className="h-16 flex justify-between items-center p-3 bg-background-alt"
         style={{
           boxShadow: "2px 2px 2px rgba(0,0,0,0.3)",
           position: "fixed",
           top: "0",
           left: "0",
           right: "0",
-          background: "#1A1D29",
-          zIndex: 11,
+          zIndex: 30,
         }}
       >
         <div
@@ -101,22 +100,22 @@ const NavBar = () => {
             </>
           )}
 
-          {/* {!isTabletScreen && (
+          {!isTabletScreen && (
             <div style={{ display: "flex" }}>
-              {user?.profile && <AccountButton />}
+              {/* {user?.profile && <AccountButton />} */}
 
-              <SearchModal />
+              {/* <SearchModal /> */}
               {isChatBoxOpen === false ? (
-                <Button className="mr-5" onClick={() => updateChatBox(true)}>
+                <Button className="mr-5" onClick={() => setIsChatBoxOpen(true)}>
                   <Image src="/assets/images/message.svg" alt="MESSAGE" width={20} />
                 </Button>
               ) : null}
             </div>
-          )} */}
+          )}
         </div>
       </div>
 
-      {/* <ChatBox isChatBox={isChatBoxOpen} setIsChatBox={updateChatBox} /> */}
+      <ChatBox isChatBox={isChatBoxOpen} setIsChatBox={setIsChatBoxOpen} />
     </StyledNavBar>
   );
 };
