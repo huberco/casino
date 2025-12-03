@@ -453,8 +453,8 @@ const options = ["Live", "Month", "Week", "Day"] as const;
 
 // Define the type for winner card data
 interface WinnerCardData {
-  imgSrc: string | { src: string;[key: string]: any };
-  cartIconSrc: string | { src: string;[key: string]: any };
+  imgSrc: string;
+  cartIconSrc: string;
   username: string;
   price: string;
 }

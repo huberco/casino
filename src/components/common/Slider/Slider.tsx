@@ -5,7 +5,7 @@ import { StyledSlider } from "./StyledSlider";
 
 interface SliderProps {
   CardsComponent: React.ReactNode;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const Slider: React.FC<SliderProps> = ({ CardsComponent, containerRef }) => {
