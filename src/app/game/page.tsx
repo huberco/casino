@@ -30,7 +30,7 @@ const steps = [
   },
 ];
 
-const GamePage = ({ update }: { update: () => void }) => {
+const GamePage = () => {
   return (
     <div className="container">
       <Banner />
