@@ -3,6 +3,7 @@
 import React from "react";
 import { Image } from "@heroui/react";
 import { StyledArrowIcons } from "./StyledArrowIcons";
+import { FaAngleLeft, FaAngleRight} from "react-icons/fa6";
 
 interface ArrowIconsProps {
   scrollLeft: () => void;
@@ -12,11 +13,11 @@ interface ArrowIconsProps {
 const ArrowIcons: React.FC<ArrowIconsProps> = ({ scrollLeft, scrollRight }) => {
   return (
     <StyledArrowIcons>
-      <button onClick={scrollLeft} className="arrow-style">
-        <Image src="/assets/images/Frame (25).svg" alt="left" width={16} height={16} />
+      <button onClick={scrollLeft} className="arrow-style group ">
+        <FaAngleLeft className="group-hover:text-primary!"/>
       </button>
-      <button onClick={scrollRight} className="arrow-style">
-        <Image src="/assets/images/Frame (26).svg" alt="right" width={16} height={16} />
+      <button onClick={scrollRight} className="arrow-style group">
+        <FaAngleRight className="group-hover:text-primary!"/>
       </button>
     </StyledArrowIcons>
   );

@@ -9,10 +9,10 @@ import Button from "@/components/Buttons/Button";
 import StepsSection from "@/components/common/StepSection/StepsSection";
 import LiveWinsSection from "@/components/common/WinnerCard/LiveWinsSection";
 import CasinoSection from "@/components/common/CasinoSection/CasinoSection";
+import NFTSectionWithHeader from "@/components/common/NFTCard/NFTSectionWithHeader";
 // import BonusCardSection from "../../Common/BonusCard/BonusCardSection";
 // import BoxesSection from "../../Common/BoxCard/BoxesSection";
 // import CryptoSection from "../../Common/CryptoCard/CryptoSection";
-// import NTFSection from "../../Common/NFTCard/NTFSectionWithHeader";
 // import NewTableView from "./NewTableView";
 
 const steps = [
@@ -65,11 +65,12 @@ const GamePage = () => {
 
       {/* NFT LOOT BOXES */}
 
-      {/* <NTFSection
+      <NFTSectionWithHeader
         title="NFT Lootboxes"
         buttonText="View All"
         buttonLink="/nft/lootboxes/play"
-      /> */}
+        isLootbox={true}
+      />
 
       {/* table view */}
       {/* <NewTableView /> */}

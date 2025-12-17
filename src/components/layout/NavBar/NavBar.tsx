@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGameSettings } from "@/contexts/GameSettingsContext";
 import Button from "@/components/Buttons/Button";
 import { Image } from "@heroui/react";
+import { FaMessage, FaRegMessage } from "react-icons/fa6";
 
 const NavBar = () => {
   // const {

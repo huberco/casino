@@ -865,7 +865,7 @@ export const sharedNFTData = {
 
 export const NFTS_DATA = [
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/1.jpg",
     title: "Golden Grizzly",
     subTitle: "AKbots",
     amount: "$5.88K",
@@ -877,14 +877,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/1.jpg",
       title: "Golden Grizzly",
       subtitle: "AKbots",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/2.jpg",
     title: "Golden Grizzly",
     subTitle: "AKbots",
     amount: "$5.88K",
@@ -896,14 +896,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/2.jpg",
       title: "Golden Grizzly",
       subtitle: "AKbots",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/3.jpg",
     title: "Golden Grizzly",
     subTitle: "Sports AKbots",
     amount: "$9.88K",
@@ -915,14 +915,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/3.jpg",
       title: "Golden Grizzly",
       subtitle: "Sports AKbots",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/4.jpg",
     title: "Bored Ape Yacht Club #4848",
     subTitle: "Bored Ape Yacht Club",
     amount: "$490",
@@ -934,14 +934,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/4.jpg",
       title: "Bored Ape Yacht Club #4848",
       subtitle: "Bored Ape Yacht Club",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/5.jpg",
     title: "POLITICS IS BULLSHIT #34",
     subTitle: "AKbots",
     amount: "$700K",
@@ -953,14 +953,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/5.jpg",
       title: "POLITICS IS BULLSHIT #34",
       subtitle: "AKbots",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/6.jpg",
     title: "Golden Grizzly",
     subTitle: "Sports AKbots",
     amount: "$9.88K",
@@ -972,14 +972,14 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/6.jpg",
       title: "Golden Grizzly",
       subtitle: "Sports AKbots",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
     },
   },
   {
-    imageSrc: "/assets/images/IMAGE (10).png",
+    imageSrc: "/assets/images/nft/7.jpg",
     title: "Bored Ape Yacht Club #4848",
     subTitle: "Bored Ape Yacht Club",
     amount: "$490",
@@ -991,7 +991,7 @@ export const NFTS_DATA = [
     ...sharedNFTData,
     detailsContainerInfo: {
       ...sharedNFTData.detailsContainerInfo,
-      nftImageSrc: "/assets/images/IMAGE (10).png",
+      nftImageSrc: "/assets/images/nft/7.jpg",
       title: "Bored Ape Yacht Club #4848",
       subtitle: "Bored Ape Yacht Club",
       prices: ["$3.66k", "$6.07K", "$10.1K"],
