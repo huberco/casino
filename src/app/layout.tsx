@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Audiowide, Geist, Geist_Mono, Righteous } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import Header from "@/components/layout/Header";
@@ -19,6 +19,18 @@ import PageLoader from "@/components/layout/PageLoader";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+const audioWide = Audiowide({
+  variable: "--font-audiowide",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const righteous = Righteous({
+  variable: "--font-righteous",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 const geistMono = Geist_Mono({
@@ -55,12 +67,12 @@ export default function RootLayout({
         </Script>
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
+        className={`${audioWide.variable} ${righteous.variable} antialiased dark`}
       >
         <GlobalStyle />
         <Providers>
           <PageLoader />
-          <div className="min-h-screen scrollbar-hide relative ">
+          <div className="min-h-screen scrollbar-hide relative font-audiowide">
             {/* <AnimatedGridBackground /> */}
             <NavBar />
             <SideBar />

@@ -9,9 +9,9 @@ const PageLoader: React.FC = () => {
   const { isConnected } = useWebSocket()
 
   // Show loading if game settings are loading or websocket is not connected
-  // const isLoading = gameSettingsLoading || !isConnected
+  const isLoading = gameSettingsLoading || !isConnected
 
-  // if (!isLoading) return null
+  if (!isLoading) return null
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#1a1d29]">

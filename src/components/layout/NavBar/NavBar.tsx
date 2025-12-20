@@ -56,7 +56,7 @@ const NavBar = () => {
           <Link href="/ " className="flex h-10 flex-shrink-0 cursor-pointer items-center gap-2 ml-4">
             <Image src="/web-app-manifest-512x512.png" alt="SPINX" width={40} />
             <span className="shadow-2xs
-            shadow-amber-200 font-bold text-3xl bg-linear-to-r from-[#ff8719] via-[#ffe81a] to-[#ff8719] text-transparent bg-clip-text">MCRC-V2</span>
+            shadow-amber-200 font-bold text-3xl bg-linear-to-r from-[#ff8719] via-[#ffe81a] to-[#ff8719] text-transparent bg-clip-text font-audiowide">BeT366</span>
           </Link>
           {/* Rewards Button */}
           {/* {user?.profile && (
