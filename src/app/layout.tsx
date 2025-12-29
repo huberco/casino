@@ -15,6 +15,7 @@ import SideBar from "@/components/layout/Sidebar/SideBar";
 import ScrollToTop from "@/components/ScrollToTop";
 import PageLayout from "@/components/layout/Layout";
 import PageLoader from "@/components/layout/PageLoader";
+import ModalRoot from "@/components/modals/ModalRoot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,6 +82,7 @@ export default function RootLayout({
               {children}
             </PageLayout>
           </div>
+          <ModalRoot />
         </Providers>
       </body>
     </html>

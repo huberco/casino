@@ -23,6 +23,7 @@ import { useGameSettings } from "@/contexts/GameSettingsContext";
 import Button from "@/components/Buttons/Button";
 import { Image } from "@heroui/react";
 import { FaMessage, FaRegMessage } from "react-icons/fa6";
+import { useModalStore } from "@/store/modalStore";
 
 const NavBar = () => {
   // const {
@@ -35,6 +36,12 @@ const NavBar = () => {
 
   const { user } = useAuth();
   const  { isTabletScreen, isMobileScreen, isSidebarOpen, selectedOption, isChatBoxOpen, setIsChatBoxOpen } = useGameSettings();
+  const { openModal } = useModalStore();
+
+  const openAuthModal = () => {
+    console.log("open Modal")
+    openModal('auth')
+  }
 
   return (
     <StyledNavBar>
@@ -97,7 +104,7 @@ const NavBar = () => {
             <>
               {/* <RegisterModal modalOption="login" />
               <RegisterModal modalOption="register" /> */}
-              <Button className="primary-button">Login</Button>
+              <Button className="primary-button" onClick={openAuthModal} >Login</Button>
             </>
           )}
 

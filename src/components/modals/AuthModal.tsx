@@ -1,4 +1,4 @@
-import { useModal, useModalType } from "@/contexts/modalContext";
+import { useModalStore } from "@/store/modalStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import {
@@ -85,9 +85,14 @@ export const UserIcon = (props: any) => {
   );
 };
 
-export default function AuthModal() {
-  const { isOpen: isAuthOpen } = useModalType('auth')
-  const { showModal, hideModal } = useModal()
+interface AuthModalProps {
+  onClose?: () => void
+}
+
+export default function AuthModal({ onClose }: AuthModalProps = {}) {
+  const { modal, closeModal } = useModalStore()
+  const isAuthOpen = modal === 'auth'
+  const hideModal = onClose || closeModal
   const { signIn, signUp, signInWithGoogle, signInWithTwitter, signInWithMetaMask, loginWithOTP } = useAuth()
   const [isSignUp, setIsSignUp] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password')
@@ -111,9 +116,7 @@ export default function AuthModal() {
   })
 
   const onOpenChange = (state: boolean) => {
-    if (state) {
-      showModal('auth')
-    } else {
+    if (!state) {
       hideModal()
       // Reset to signin mode when closing
       setIsSignUp(false)
