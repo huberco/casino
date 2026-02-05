@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Audiowide, Geist, Geist_Mono, Righteous } from "next/font/google";
+import { Audiowide, Geist, Geist_Mono, Geologica, Righteous } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import Header from "@/components/layout/Header";
@@ -17,8 +17,8 @@ import PageLayout from "@/components/layout/Layout";
 import PageLoader from "@/components/layout/PageLoader";
 import ModalRoot from "@/components/modals/ModalRoot";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const geologica = Geologica({
+  variable: "--font-geologica",
   subsets: ["latin"],
 });
 
@@ -68,12 +68,12 @@ export default function RootLayout({
         </Script>
       </head>
       <body
-        className={`${audioWide.variable} ${righteous.variable} antialiased dark`}
+        className={`${geologica.variable} ${audioWide.variable} ${righteous.variable} antialiased dark font-geogrotesque`}
       >
         <GlobalStyle />
         <Providers>
           <PageLoader />
-          <div className="min-h-screen scrollbar-hide relative font-audiowide">
+          <div className="min-h-screen scrollbar-hide relative">
             {/* <AnimatedGridBackground /> */}
             <NavBar />
             <SideBar />

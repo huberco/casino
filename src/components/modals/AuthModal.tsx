@@ -386,8 +386,8 @@ export default function AuthModal({ onClose }: AuthModalProps = {}) {
                   }}
                   variant="solid"
                   classNames={{
-                    tabList: "w-full bg-background",
-                    cursor: "w-full bg-primary ",
+                    tabList: "w-full bg-background scrollbar-hide overflow-hidden",
+                    cursor: "w-full bg-primary",
                     tab: "data-[selected=true]:bg-background-alt",
                     tabContent: "group-data-[selected=true]:text-primary"
                   }}

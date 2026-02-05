@@ -20,6 +20,54 @@
   --font-righteous: var(--font-righteous);
 }
 
+/* Geogrotesque Wide local font family */
+@font-face {
+  font-family: "Geogrotesque Wide";
+  src: url("/assets/fonts/geogrotesque-wide-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geogrotesque Wide";
+  src: url("/assets/fonts/geogrotesque-wide-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geogrotesque Wide";
+  src: url("/assets/fonts/geogrotesque-wide-semi-bold..woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geogrotesque Wide";
+  src: url("/assets/fonts/geogrotesque-wide-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geogrotesque Wide";
+  src: url("/assets/fonts/geogrotesque-wide-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Utility classes for Geogrotesque Wide variants */
+.font-geogrotesque { font-family: "Geogrotesque Wide", sans-serif; font-weight: 400; }
+.font-geogrotesque-medium { font-family: "Geogrotesque Wide", sans-serif; font-weight: 500; }
+.font-geogrotesque-semi-bold { font-family: "Geogrotesque Wide", sans-serif; font-weight: 600; }
+.font-geogrotesque-bold { font-family: "Geogrotesque Wide", sans-serif; font-weight: 700; }
+.font-geogrotesque-italic { font-family: "Geogrotesque Wide", sans-serif; font-style: italic; font-weight: 400; }
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #030E14;
@@ -31,7 +79,6 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-righteous);
 }
 
 @keyframes glow {

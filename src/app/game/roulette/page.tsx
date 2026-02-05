@@ -469,28 +469,54 @@ export default function JackpotPage() {
         <div className="relative z-10 sm:p-6 p-2">
           <div className="max-w-7xl mx-auto">
 
-            <div className="flex flex-col-reverse xl:grid grid-cols-16 gap-8 my-8 itms">
+            <div className="flex flex-col gap-8 my-8 itms-center ">
               {/* Betting Control Panel */}
-              <div className="col-span-16 lg:col-span-6 xl:col-span-4 bg-background-alt flex flex-col gap-4 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+              <div className="bg-background-alt justify-center flex gap-4 items-center backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
                 {/* Bet Amount */}
-                <Input
-                  value={betAmount.toString()}
-                  onValueChange={(value) => handleBetAmountChange(Number(value))}
-                  type="number"
-                  label="Bet Amount"
-                  labelPlacement='outside'
-                  startContent={<FaCoins />}
-                  placeholder="0.00"
-                  size='lg'
-                  className="w-full  text-white"
-                  classNames={{
-                    inputWrapper: "bg-background border border-gray-700/50 rounded-lg",
-                  }}
-                />
-                <div className='flex gap-2 justify-between text-xs text-white/50'>
-                  <span>Min Bet: {settings?.games?.roulette?.minBet || 0.001} {config.token}</span>
-                  <span>Max Bet: {settings?.games?.roulette?.maxBet || 1000} {config.token}</span>
+                <div className='flex flex-col gap-2'>
+                  <Input
+                    value={betAmount.toString()}
+                    onValueChange={(value) => handleBetAmountChange(Number(value))}
+                    type="number"
+                    label="Bet Amount"
+                    labelPlacement='outside'
+                    startContent={<FaCoins />}
+                    placeholder="0.00"
+                    size='lg'
+                    className="w-full  text-white min-w-[250px]"
+                    classNames={{
+                      inputWrapper: "bg-background border border-gray-700/50 rounded-lg",
+                    }}
+                  />
+                  <div className='flex gap-2 justify-between text-xs text-white/50'>
+                    <span>Min Bet: {settings?.games?.roulette?.minBet || 0.001} {config.token}</span>
+                    <span>Max Bet: {settings?.games?.roulette?.maxBet || 1000} {config.token}</span>
+                  </div>
                 </div>
+                {/* Place Roulette Bet */}
+                <PrimaryButton
+                  onClick={() => {
+                    console.log('🎰 Button clicked - Game status:', currentGame?.status, 'User bet:', !!userBet, 'Is placing bet:', isPlacingBet);
+                    handlePlayNow();
+                  }}
+                  disabled={
+                    (currentGame && currentGame.status !== 'betting' && currentGame.status !== 'waiting') ||
+                    isPlacingBet ||
+                    betAmount <= 0 ||
+                    betAmount < (settings?.games?.roulette?.minBet || 0.01) ||
+                    betAmount > (settings?.games?.roulette?.maxBet || 1000) ||
+                    !user.isAuthenticated
+                  }
+                  isLoading={isPlacingBet}
+                  className="bg-primary hover:bg-primary/80 text-background font-bold py-3 rounded-full"
+                >
+                  {isPlacingBet ? 'PLACING BET...' :
+                    userBet ? 'BET PLACED' :
+                      currentGame?.status === 'drawing' ? 'DRAWING...' :
+                        currentGame?.status === 'betting' || currentGame?.status === 'waiting' ? `BET ${betType.toUpperCase()}` :
+                          !currentGame ? 'JOIN GAME' :
+                            'WAITING FOR GAME'}
+                </PrimaryButton>
                 <div className='flex gap-2 items-center justify-center'>
                   <div className='flex flex-col gap-2  items-center'>
                     <Button className={`px-2 rounded-full min-h-0 min-w-0 aspect-square h-auto w-20 ${betType === "heads" ? "bg-primary/30 shadow-md shadow-primary" : "scale-90 bg-transparent border border-primary/20"}`} onPress={() => setBetType('heads')}>
@@ -514,42 +540,19 @@ export default function JackpotPage() {
 
                 {/* Current Stats */}
                 <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Your Stake:</span>
-                    <span className="text-white font-bold">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-300 whitespace-nowrap">Your Stake:</span>
+                    <span className="text-white font-bold whitespace-nowrap">
                       {userBet ? `${userBet.betAmount.toFixed(2)} USDT` : '0.00 USDT'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Your Bet Type:</span>
+                  {/* <div className="flex items-center justify-between">
+                    <span className="text-gray-300 whitespace-nowrap">Your Bet Type:</span>
                     <span className="text-white font-bold">{userBet ? userBet.betType.toUpperCase() : '-'}</span>
-                  </div>
+                  </div> */}
                 </div>
 
-                {/* Place Roulette Bet */}
-                <PrimaryButton
-                  onClick={() => {
-                    console.log('🎰 Button clicked - Game status:', currentGame?.status, 'User bet:', !!userBet, 'Is placing bet:', isPlacingBet);
-                    handlePlayNow();
-                  }}
-                  disabled={
-                    (currentGame && currentGame.status !== 'betting' && currentGame.status !== 'waiting') ||
-                    isPlacingBet ||
-                    betAmount <= 0 ||
-                    betAmount < (settings?.games?.roulette?.minBet || 0.01) ||
-                    betAmount > (settings?.games?.roulette?.maxBet || 1000) ||
-                    !user.isAuthenticated
-                  }
-                  isLoading={isPlacingBet}
-                  className="w-full bg-primary hover:bg-primary/80 text-background font-bold py-3 rounded-full"
-                >
-                  {isPlacingBet ? 'PLACING BET...' :
-                    userBet ? 'BET PLACED' :
-                      currentGame?.status === 'drawing' ? 'DRAWING...' :
-                        currentGame?.status === 'betting' || currentGame?.status === 'waiting' ? `BET ${betType.toUpperCase()}` :
-                          !currentGame ? 'JOIN GAME' :
-                            'WAITING FOR GAME'}
-                </PrimaryButton>
+
               </div>
 
               {/* Main Game Panel */}
@@ -564,46 +567,46 @@ export default function JackpotPage() {
                     </div>
                     {currentGame && (currentGame.status === 'drawing' || currentGame.status === 'completed') && (
                       <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-12">
-                          <div className='flex flex-col'>
-                            <div className="text-xs text-gray-400">Round #{currentGame.gameId}</div>
-                          </div>
-
-                          {(currentGame.serverSeedHash && currentGame.publicSeed) && (
-                            <Popover showArrow offset={10} placement="top">
-                              <PopoverTrigger>
-                                <FaInfoCircle className='cursor-pointer'/>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[400px] bg-background-alt">
-                                <div className="flex flex-col gap-1 w-full ">
-                                  <div className="flex items-center justify-between w-full gap-1">
-                                    <span className="text-gray-400 min-w-[150px]">Server Seed Hash:</span>
-                                    <Snippet
-                                      symbol=''
-                                      className="w-full text-xs"
-                                      classNames={{
-                                        pre: "max-w-[150px]! sm:max-w-full truncate",
-                                      }}
-                                    >
-                                      {currentGame.serverSeedHash}
-                                    </Snippet>
-                                  </div>
-                                  <div className="flex items-center justify-between w-full gap-1">
-                                    <span className="text-gray-400 min-w-[150px]">Public Seed:</span>
-                                    <Snippet
-                                      symbol=''
-                                      className="w-full text-xs"
-                                      classNames={{
-                                        pre: "max-w-[150px]! sm:max-w-full truncate",
-                                      }}
-                                    >
-                                      {currentGame.publicSeed}
-                                    </Snippet>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          )}
+                        <div className='flex flex-col'>
+                          <div className="text-xs text-gray-400">Round #{currentGame.gameId}</div>
                         </div>
+
+                        {(currentGame.serverSeedHash && currentGame.publicSeed) && (
+                          <Popover showArrow offset={10} placement="top">
+                            <PopoverTrigger>
+                              <FaInfoCircle className='cursor-pointer' />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[400px] bg-background-alt">
+                              <div className="flex flex-col gap-1 w-full ">
+                                <div className="flex items-center justify-between w-full gap-1">
+                                  <span className="text-gray-400 min-w-[150px]">Server Seed Hash:</span>
+                                  <Snippet
+                                    symbol=''
+                                    className="w-full text-xs"
+                                    classNames={{
+                                      pre: "max-w-[150px]! sm:max-w-full truncate",
+                                    }}
+                                  >
+                                    {currentGame.serverSeedHash}
+                                  </Snippet>
+                                </div>
+                                <div className="flex items-center justify-between w-full gap-1">
+                                  <span className="text-gray-400 min-w-[150px]">Public Seed:</span>
+                                  <Snippet
+                                    symbol=''
+                                    className="w-full text-xs"
+                                    classNames={{
+                                      pre: "max-w-[150px]! sm:max-w-full truncate",
+                                    }}
+                                  >
+                                    {currentGame.publicSeed}
+                                  </Snippet>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
                     )}
 
 
