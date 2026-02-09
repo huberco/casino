@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎰 Casino Betting Platform
 
-## Getting Started
+A modern, modular casino & prediction betting platform designed for **high-frequency games**, **clear UX**, and **scalable architecture**.  
+The platform focuses on **trust, clarity, and performance**, enabling users to place bets, track results, and manage balances with confidence.
 
-First, run the development server:
+> ⚠️ This repository showcases the platform architecture and frontend/backend integration patterns.  
+> Sensitive logic, odds configuration, and financial controls are abstracted or mocked.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🎮 Betting & Games
+- Multiple betting modes (binary predictions, position-based bets, jackpot-style bets)
+- Fixed-round betting system with countdown timers
+- Clear odds and payout multipliers
+- Real-time round state updates (Open / Closed / Result)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 👤 User System
+- User registration & authentication
+- Invitation-code–based signup flow
+- User balance & transaction history
+- Betting history and result tracking
+- Notification system (results, deposits, withdrawals)
 
-## Learn More
+### 💰 Wallet & Payments
+- Balance management abstraction
+- Deposit & withdrawal flow (mocked / configurable)
+- Transaction and balance change history
+- Designed to support both fiat and crypto integrations
 
-To learn more about Next.js, take a look at the following resources:
+### 🔍 Fairness & Transparency
+- Round result verification UI (provably-fair–style concept)
+- Deterministic round IDs and result references
+- Historical result lookup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> Note: Fairness verification is presented as a **product feature / UX concept** and does not imply on-chain settlement.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🛠 Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Frontend**
+- React / Next.js
+- TypeScript
+- Tailwind CSS
+- Component-based UI architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Backend**
+- Node.js
+- REST / WebSocket APIs
+- Modular game engine design
+- Round scheduler & result engine
+
+**Other**
+- State-driven UI updates
+- Scalable game-provider abstraction
+- Environment-based configuration
+
+---
+
+## 🧩 Architecture Overview
+
+```text
+Client (Web / Mobile)
+        |
+        v
+Frontend UI (React / Next.js)
+        |
+        v
+API Layer (Auth, Games, Bets, Wallet)
+        |
+        v
+Game Engine (Rounds, Odds, Results)
+        |
+        v
+Storage (Users, Bets, History)
