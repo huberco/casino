@@ -4,7 +4,6 @@ import PrimaryButton from '@/components/ui/PrimaryButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { useModal, useModalType } from '@/contexts/modalContext'
 import { gameApi } from '@/lib/api'
-import supabase from '@/lib/supabase'
 import { addToast, Avatar, Input, Textarea } from '@heroui/react'
 import { useState, useEffect, useRef } from 'react'
 import { FaEdit } from 'react-icons/fa'
@@ -26,8 +25,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Check if user is a MetaMask wallet user
-  const isWalletUser = user.profile?.walletAddress && !user.profile?.supabaseId
+  // Wallet-only users have no email/password profile; all users use backend profile API
+  const isWalletUser = !!user.profile?.walletAddress && !user.email
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -118,7 +117,7 @@ export default function ProfilePage() {
       }
 
       // Show notification for MetaMask users without email
-      const isWalletUser = user.profile.walletAddress && !user.profile.supabaseId
+      const isWalletUser = !!user.profile?.walletAddress && !user.email
       if (isWalletUser && !user.profile.email) {
         addToast({
           title: '🦊 Welcome MetaMask User!',
@@ -227,39 +226,7 @@ export default function ProfilePage() {
           }
         })
       } else {
-        // Step 1: Update Supabase user metadata for Supabase users
-        console.log('🔄 Step 1: Updating Supabase user metadata...')
-        const { data: supabaseUser, error: supabaseError } = await supabase.auth.getUser()
-
-        if (supabaseError) {
-          throw new Error(`Failed to get current user: ${supabaseError.message}`)
-        }
-
-        if (!supabaseUser.user) {
-          throw new Error('No authenticated user found')
-        }
-
-        console.log('✅ Current Supabase user:', supabaseUser.user.email)
-
-        // Update Supabase user metadata
-        const { error: updateError } = await supabase.auth.updateUser({
-          email: formData.email,
-          data: {
-            full_name: formData.displayName,
-            display_name: formData.displayName,
-            username: formData.displayName,
-            bio: formData.bio
-          }
-        })
-
-        if (updateError) {
-          throw new Error(`Failed to update Supabase user: ${updateError.message}`)
-        }
-
-        console.log('✅ Supabase user metadata updated successfully')
-
-        // Step 2: If Supabase update successful, update backend profile
-        console.log('🔄 Step 2: Updating backend profile...')
+        // Update backend profile only (platform JWT auth)
         const updateResponse = await gameApi.user.updateProfile({
           username: formData.displayName,
           displayName: formData.displayName,
@@ -268,24 +235,15 @@ export default function ProfilePage() {
         })
 
         if (!updateResponse.success) {
-          throw new Error(updateResponse.error || 'Failed to update backend profile')
+          throw new Error(updateResponse.error || 'Failed to update profile')
         }
 
-        console.log('✅ Backend profile updated successfully:', updateResponse.data)
-
-        // Step 3: Update local user context
-        console.log('🔄 Step 3: Updating local user context...')
         if (updateResponse.data) {
           updateUser(updateResponse.data)
         }
 
-        // Step 4: Refresh profile to get latest data
-        console.log('🔄 Step 4: Refreshing profile...')
         await refreshProfile()
 
-        console.log('✅ Profile update completed successfully!')
-
-        // Step 5: Show success modal
         showModal('success', {
           title: "Profile Updated!",
           message: "Your profile has been successfully updated.",

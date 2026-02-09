@@ -10,6 +10,7 @@ import { WebSocketProvider } from '@/contexts/socketContext'
 import { GameSettingsProvider } from '@/contexts/GameSettingsContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { XPProvider } from '@/contexts/XPContext'
+import { AppLoadProvider } from '@/contexts/AppLoadContext'
 import LevelUpNotification from '@/components/XP/LevelUpNotification'
 import NotificationManager from '@/components/notifications/NotificationManager'
 import BalanceUpdateListener from '@/components/BalanceUpdateListener'
@@ -17,6 +18,7 @@ import { HeroUIProvider, ToastProvider } from '@heroui/react'
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <HeroUIProvider>
+      <AppLoadProvider>
       <AuthProvider>
         <WebSocketProvider>
           <XPProvider>
@@ -39,6 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           </XPProvider>
         </WebSocketProvider>
       </AuthProvider>
+      </AppLoadProvider>
     </HeroUIProvider>
   )
 }

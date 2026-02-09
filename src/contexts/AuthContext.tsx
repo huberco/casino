@@ -1,9 +1,10 @@
 'use client'
 
 import { apiClient, gameApi, authUtils } from '@/lib/api'
-import supabase from '@/lib/supabase'
 import { UserProfile } from '@/types/user'
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || ''
 
 // User types
 interface User {
@@ -137,43 +138,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchUserProfile])
 
-  // Sign in with email/password
+  // Sign in with email/password (backend POST /auth/login, sets platform-token cookie)
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
       })
-
-      if (error) throw error
-
-      // Token exchange will be handled automatically by onAuthStateChange
-      // when the SIGNED_IN event is triggered
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Login failed')
+      await fetchUserProfile()
     } catch (error: any) {
       console.error('Sign in error:', error)
       throw new Error(error.message || 'Sign in failed')
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [fetchUserProfile])
 
-  // Sign up with email/password
+  // Sign up with email/password (backend POST /auth/register, sends verification email)
   const signUp = useCallback(async (email: string, password: string, metadata?: { name?: string }) => {
     try {
       setIsLoading(true)
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: metadata
-        }
+      const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, name: metadata?.name })
       })
-
-      if (error) throw error
-
-      // Token exchange will be handled automatically by onAuthStateChange
-      // when the SIGNED_IN event is triggered
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Registration failed')
+      // Do not log in; user must verify email first
     } catch (error: any) {
       console.error('Sign up error:', error)
       throw new Error(error.message || 'Sign up failed')
@@ -229,44 +227,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Sign in with Google
+  // Social login not available (use email or OTP)
   const signInWithGoogle = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
-
-      if (error) throw error
-    } catch (error: any) {
-      console.error('Google sign in error:', error)
-      throw new Error(error.message || 'Google sign in failed')
-    } finally {
-      setIsLoading(false)
-    }
+    throw new Error('Use email or OTP to sign in')
   }, [])
 
-  // Sign in with Twitter
   const signInWithTwitter = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'twitter',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
-
-      if (error) throw error
-    } catch (error: any) {
-      console.error('Twitter sign in error:', error)
-      throw new Error(error.message || 'Twitter sign in failed')
-    } finally {
-      setIsLoading(false)
-    }
+    throw new Error('Use email or OTP to sign in')
   }, [])
 
   // Sign in with MetaMask
@@ -354,74 +321,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchUserProfile])
 
-  // Exchange Supabase token for platform JWT
-  const exchangeToken = useCallback(async (supabaseToken: string): Promise<void> => {
-    try {
-      // Check if we're in a redirect loop - if so, don't attempt token exchange
-      if (typeof window !== 'undefined' && sessionStorage.getItem('auth_redirect_flag')) {
-        console.log('🔄 Auth redirect flag detected, skipping token exchange')
-        sessionStorage.removeItem('auth_redirect_flag')
-        sessionStorage.removeItem('logout_in_progress') // Clear logout flag as well
-        setUser(prev => ({
-          ...prev,
-          isAuthenticated: false,
-          isLoading: false,
-          profile: null
-        }))
-        return
-      }
-
-      const response = await apiClient.post('/auth/exchange', {
-        token: supabaseToken
-      })
-
-      if (response.data.success) {
-        console.log('✅ Platform token obtained and stored in cookie')
-        // Fetch user profile after successful token exchange
-        await fetchUserProfile()
-      } else {
-        throw new Error('Token exchange failed')
-      }
-    } catch (error) {
-      console.error('❌ Token exchange failed:', error)
-      // Clear user state on token exchange failure
-      setUser(prev => ({
-        ...prev,
-        isAuthenticated: false,
-        isLoading: false,
-        profile: null
-      }))
-      // Ensure Supabase session and local tokens are cleared to avoid repeated failures
-      try {
-        await supabase.auth.signOut()
-      } catch (_) {}
-      if (typeof window !== 'undefined') {
-        try {
-          // Supabase stores session under this key pattern in localStorage
-          localStorage.removeItem('supabase.auth.token')
-          // Clear any app-specific tokens if present
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('platform_token')
-          sessionStorage.removeItem('auth_redirect_flag')
-          sessionStorage.removeItem('logout_in_progress')
-        } catch (_) {}
-      }
-      throw error
-    }
-  }, [fetchUserProfile])
-
-  // Sign out
+  // Sign out (backend logout only, clear cookie)
   const signOut = useCallback(async () => {
     try {
       setIsLoading(true)
-      
-      // Call backend logout to clear cookie
       await authUtils.logout()
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut()
-      
-      // Clear user state
       setUser({
         id: '',
         email: '',
@@ -431,10 +335,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile: null,
         balance: 0
       })
-      
-      console.log('✅ User signed out successfully')
-      
-      // Redirect to home page
       if (typeof window !== 'undefined') {
         window.location.href = '/'
       }
@@ -468,43 +368,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile: prev.profile ? { ...prev.profile, balance: newBalance } : null
     }))
   }, [])
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: any) => {
-        console.log('🔄 Auth state change:', event, session?.user?.email)
-        
-        // Check if we're in a redirect loop - if so, don't process auth state changes
-        if (typeof window !== 'undefined' && sessionStorage.getItem('auth_redirect_flag')) {
-          console.log('🔄 Auth redirect flag detected, skipping auth state change processing')
-          return
-        }
-        
-        if (event === 'SIGNED_IN' && session?.user || event === 'INITIAL_SESSION' && session?.user) {
-          // Exchange Supabase token for platform JWT
-          if (session.access_token) {
-            try {
-              await exchangeToken(session.access_token)
-            } catch (error) {
-              console.error('❌ Failed to exchange token:', error)
-            }
-          }
-        } else if (event === 'SIGNED_OUT') {
-          // Clear user state
-          setUser(prev => ({
-            ...prev,
-            isAuthenticated: false,
-            profile: null
-          }))
-        }
-      }
-    )
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [exchangeToken])
 
   // Check auth status on mount only
   useEffect(() => {

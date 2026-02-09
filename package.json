@@ -14,6 +14,7 @@
     "@emotion/styled": "^11.14.1",
     "@heroui/react": "^2.8.3",
     "@mui/x-charts": "^8.11.3",
+    "@pixi/canvas-renderer": "^7.4.3",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.0",
     "@types/qrcode": "^1.5.5",

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm your signup</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #030E14; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #030E14; min-height: 100vh;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 480px;">
+          <!-- Header: table layout for email client support (flex not reliable in Outlook) -->
+          <tr>
+            <td style="padding-bottom: 32px; text-align: center;">
+              <table role="presentation" align="center" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td align="center" style="vertical-align: middle;">
+                    <img src="https://www.bet366.casino/web-app-manifest-512x512.png" width="100" height="100" alt="Bet366" style="display: block; width: 100px; height: 100px; border: 0; outline: none; -ms-interpolation-mode: bicubic;" />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 12px;">
+                    <span style="font-size: 24px; font-weight: 700; color: #A3E635; letter-spacing: -0.02em;">Bet366</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Card -->
+          <tr>
+            <td style="background-color: #04141C; border-radius: 12px; padding: 32px 24px; border: 1px solid rgba(163, 230, 53, 0.15);">
+              <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #ededed; letter-spacing: -0.02em;">
+                Confirm your signup
+              </h2>
+              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.5; color: #a1a1aa;">
+                Thanks for signing up. Click the button below to confirm your email and get started.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 8px 0 24px 0;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener" style="display: inline-block; background-color: #A3E635; color: #030E14; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 28px; border-radius: 9999px; letter-spacing: -0.02em;">
+                      Confirm your email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #71717a;">
+                If the button doesn’t work, copy and paste this link into your browser:
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; line-height: 1.5; color: #A3E635; word-break: break-all;">
+                {{ .ConfirmationURL }}
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top: 24px; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #52525b;">
+                You received this email because you signed up at bet366.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

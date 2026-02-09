@@ -15,12 +15,14 @@ import {
   MdStop,
   MdVerifiedUser
 } from 'react-icons/md'
-import CrashPixiChart from '@/components/Chart/CrashPixiChart'
 import CrashHistory from '@/components/table/CrashHistory'
-import { FaCashRegister, FaClock, FaInfo, FaPause, FaPlay } from 'react-icons/fa6'
+import { FaCashRegister, FaCircle, FaClock, FaInfo, FaPause, FaPlay, FaWifi } from 'react-icons/fa6'
 import config from '@/lib/config'
 import { useGameSettings } from '@/contexts/GameSettingsContext'
-import { FaInfoCircle } from 'react-icons/fa'
+import { FaHistory, FaInfoCircle } from 'react-icons/fa'
+import { gameApi } from '@/lib/api'
+import CrashPixiChart from '@/components/Chart/CrashPixiChart'
+import CrashHistoryModal from '@/components/modals/CrashHistoryModal'
 interface CrashGame {
   roundId: string;
   round: number;
@@ -56,6 +58,12 @@ interface GameHistory {
   endTime: Date;
 }
 
+interface PastResult {
+  roundId: string;
+  round: number;
+  crashPoint: number;
+}
+
 export default function CrashPage() {
   const { isConnected, emit, on, off } = useWebSocket()
   const { user, updateBalance } = useAuth()
@@ -68,13 +76,30 @@ export default function CrashPage() {
   // Game state
   const [currentGame, setCurrentGame] = useState<CrashGame | null>(null)
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([])
+  const [pastResults, setPastResults] = useState<PastResult[]>([])
+  const [newestRoundId, setNewestRoundId] = useState<string | null>(null)
+  const [removingRoundId, setRemovingRoundId] = useState<string | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const pastResultsRef = useRef<PastResult[]>([])
   const [multiplierHistory, setMultiplierHistory] = useState<number[]>([])
   const [chartPoints, setChartPoints] = useState<{ t: number; m: number }[]>([])
 
+  // Time sync state
+  const clockOffsetRef = useRef<number>(0) // Server time - local time offset
+  const crashMultiplierRef = useRef<number | null>(null) // Store crash multiplier when crashed
+  const lastTimeSyncRef = useRef<number | null>(null) // Last time sync received timestamp
+  const [isConnectionLost, setIsConnectionLost] = useState(false) // Connection lost state
+
   // Betting state
   const [betAmount, setBetAmount] = useState(1.0)
-  const [autoCashout, setAutoCashout] = useState(false)
   const [autoCashoutMultiplier, setAutoCashoutMultiplier] = useState(2.0)
+
+  // Calculate winning chance percentage based on auto cashout multiplier
+  // Formula: 99 / multiplier (chance of reaching that multiplier before crash)
+  // Examples: 1.01 → 98.02%, 2 → 49.5%, 10 → 9.9%, 100 → 0.99%
+  const winningChance = autoCashoutMultiplier > 0
+    ? (99 / autoCashoutMultiplier).toFixed(2)
+    : '0.00'
   const [userBet, setUserBet] = useState<PlayerBet | null>(null)
 
   // UI state
@@ -83,6 +108,7 @@ export default function CrashPage() {
   const [showProvableFair, setShowProvableFair] = useState(false)
   const [bettingTimeLeft, setBettingTimeLeft] = useState(20000)
   const [bettingEndAt, setBettingEndAt] = useState<number | null>(null)
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false)
 
   // Chart canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -92,6 +118,30 @@ export default function CrashPage() {
   const [stats, setStats] = useState<{ numberPoints: number; fps: number }>({ numberPoints: 0, fps: 0 })
 
   const { settings } = useGameSettings();
+
+  // Load initial past results on mount
+  useEffect(() => {
+    const loadInitialHistory = async () => {
+      try {
+        const response = await gameApi.crash.getRecentHistory({ limit: 12 })
+        if (response.success && response.data) {
+          // Ensure oldest is on the left and newest is on the right
+          const results = response.data.data as PastResult[]
+          setPastResults(results.slice().reverse())
+        }
+      } catch (error) {
+        console.error('Failed to load recent crash history:', error)
+      }
+    }
+    loadInitialHistory()
+  }, [])
+
+  // Ensure autoCashoutMultiplier never goes below 1.01
+  useEffect(() => {
+    if (autoCashoutMultiplier < 1.01) {
+      setAutoCashoutMultiplier(1.01)
+    }
+  }, [autoCashoutMultiplier])
 
   // Load current game on mount
   useEffect(() => {
@@ -107,6 +157,9 @@ export default function CrashPage() {
 
     const handleGameStarted = (data: any) => {
       console.log('🎮 Crash game started:', data)
+      // Reset connection monitoring for new game
+      lastTimeSyncRef.current = null
+      setIsConnectionLost(false)
       setCurrentGame({
         roundId: data.roundId,
         round: data.round,
@@ -124,13 +177,15 @@ export default function CrashPage() {
       setBettingEndAt(endAt)
       setBettingTimeLeft(Math.max(0, endAt - Date.now()))
       setMultiplierHistory([1.00])
-      setChartPoints([{ t: 0, m: 1 }])
     }
 
     const handleBettingEnded = (data: any) => {
       console.log('🚀 Betting ended:', data)
       setBettingTimeLeft(0)
       setBettingEndAt(null)
+      // Reset connection monitoring when game starts running
+      lastTimeSyncRef.current = Date.now()
+      setIsConnectionLost(false)
       if (currentGame) {
         setCurrentGame(prev => prev ? {
           ...prev,
@@ -140,41 +195,116 @@ export default function CrashPage() {
           startTime: new Date() // Set the actual game start time
         } : null)
       }
-      // Ensure chart starts at baseline when run begins
-      setChartPoints(prev => prev.length ? prev : [{ t: 0, m: 1 }])
+      // Chart will start automatically when status changes to 'running'
     }
 
+    // Calculate multiplier locally using formula: M(t) = 1 + A * t^{B(t)}
+    const calculateMultiplier = (elapsedSeconds: number): number => {
+      if (elapsedSeconds <= 0) return 1
+      const A = 0.02
+      const B0 = 1.5
+      const B_GROWTH = 0.01
+      const MAX_B = 3.0
+      const dynamicB = Math.min(MAX_B, B0 + B_GROWTH * elapsedSeconds)
+      const multiplier = 1 + A * Math.pow(elapsedSeconds, dynamicB)
+      // Safety limit: prevent unlimited growth (cap at reasonable max, e.g., 1000x)
+      const MAX_SAFE_MULTIPLIER = 1000
+      return Math.min(multiplier, MAX_SAFE_MULTIPLIER)
+    }
+
+    // Handle round state (includes startTime, serverTime, status, crashMultiplier)
+    const handleRoundState = (data: any) => {
+      console.log('📊 Round state:', data)
+      if (!data.roundId || !currentGame || String(currentGame.roundId) !== String(data.roundId)) {
+        return
+      }
+
+      // Update clock offset: serverTime - localTime
+      if (data.serverTime) {
+        const serverTime = typeof data.serverTime === 'number' ? data.serverTime : new Date(data.serverTime).getTime()
+        const localTime = Date.now()
+        const drift = serverTime - localTime
+        // Smooth correction: 10% adjustment
+        clockOffsetRef.current = clockOffsetRef.current * 0.9 + drift * 0.1
+      }
+
+      // Update game state - only update status if it's a valid transition
+      if (data.status) {
+        setCurrentGame(prev => {
+          if (!prev) return null
+
+          // Don't update status if current status is 'running' and new status is 'crashed' without crashMultiplier
+          // This prevents stale 'crashed' events from overwriting a running game
+          if (prev.status === 'running' && data.status === 'crashed' && !data.crashMultiplier) {
+            console.warn('⚠️ Ignoring crashed status without crashMultiplier while game is running')
+            return prev
+          }
+
+          // If server flips to 'ended' after crash, keep showing last crash multiplier until next round resets in 'betting'
+          if (data.status === 'ended' && crashMultiplierRef.current !== null) {
+            return { ...prev, status: 'ended', currentMultiplier: crashMultiplierRef.current }
+          }
+
+          // Only update status if it's different (prevents unnecessary updates)
+          if (prev.status !== data.status) {
+            console.log(`📊 Status update: ${prev.status} -> ${data.status}`)
+            return { ...prev, status: data.status }
+          }
+
+          return prev
+        })
+      }
+
+      // Store crash multiplier when crashed - this should always update when crashed
+      if (data.status === 'crashed' && data.crashMultiplier !== undefined) {
+        crashMultiplierRef.current = data.crashMultiplier
+        setCurrentGame(prev => prev ? {
+          ...prev,
+          status: 'crashed',
+          currentMultiplier: data.crashMultiplier
+        } : null)
+      }
+
+      // Update startTime if provided
+      if (data.startTime) {
+        setCurrentGame(prev => prev ? {
+          ...prev,
+          startTime: new Date(data.startTime)
+        } : null)
+      }
+    }
+
+    // Handle time sync (minimal packet: just serverTime as number)
+    const handleTimeSync = (serverTime: number) => {
+      // Only process if we have an active running game
+      if (!currentGame || currentGame.status !== 'running') {
+        return
+      }
+
+      // Update last sync time for connection monitoring
+      lastTimeSyncRef.current = Date.now()
+      setIsConnectionLost(false)
+
+      // Update clock offset for time synchronization
+      const localTime = Date.now()
+      const drift = serverTime - localTime
+      // Smooth correction: 10% adjustment to prevent sudden jumps
+      clockOffsetRef.current = clockOffsetRef.current * 0.9 + drift * 0.1
+    }
+
+    // Legacy handler - can be removed after migration
     const handleMultiplierUpdate = (data: any) => {
+      // No longer used - multiplier is calculated locally
       if (currentGame?.roundId === data.roundId) {
+        // Only update multiplier text (chart draws locally)
         setCurrentGame(prev => prev ? {
           ...prev,
           currentMultiplier: data.multiplier
         } : null)
-
-        // Add to multiplier history for chart (avoid duplicates)
-        setMultiplierHistory(prev => {
-          const lastMultiplier = prev[prev.length - 1]
-          if (lastMultiplier !== data.multiplier) {
-            return [...prev, data.multiplier]
-          }
-          return prev
-        })
-
-        // Accumulate backend time+multiplier points for Pixi chart
-        setChartPoints(prev => {
-          const t = Number(data.elapsedSeconds ?? 0)
-          const m = Number(data.multiplier ?? 1)
-          if (!isFinite(t) || !isFinite(m)) return prev
-          if (prev.length === 0) return [{ t, m }]
-          const last = prev[prev.length - 1]
-          if (t <= last.t && m === last.m) return prev
-          return [...prev, { t, m }]
-        })
       }
     }
 
     const handlePlayerJoined = (data: any) => {
-      console.log('👤 Player joined:', data)
       if (currentGame?.roundId === data.roundId) {
         setCurrentGame(prev => prev ? {
           ...prev,
@@ -186,8 +316,18 @@ export default function CrashPage() {
     }
 
     const handlePlayerCashedOut = (data: any) => {
-      console.log('💰 Player cashed out:', data)
-      if (currentGame?.roundId === data.roundId) {
+
+      // Compare roundId as strings to handle ObjectId vs string mismatch
+      const roundIdMatches = String(currentGame?.roundId) === String(data.roundId)
+
+      if (roundIdMatches) {
+        const currentUsername = user.profile?.username || user.profile?.displayName || 'You'
+        const eventUsername = data.player.username
+        const isCurrentUser = eventUsername === currentUsername ||
+          eventUsername === user.profile?.displayName ||
+          eventUsername === user.profile?.username
+
+        // Update player list
         setCurrentGame(prev => {
           if (!prev) return null
           const updatedBets = prev.playerBets.map(bet =>
@@ -200,16 +340,67 @@ export default function CrashPage() {
           )
           return { ...prev, playerBets: updatedBets }
         })
+
+        // If it's the current user (auto cashout), update userBet state and show success modal
+        if (isCurrentUser) {
+          // Get bet amount from userBet, player list, or from player data
+          const betAmount = userBet?.betAmount ||
+            currentGame?.playerBets.find(b => b.username === eventUsername)?.betAmount ||
+            data.player.betAmount
+
+          // Calculate earnings: (multiplier - 1.0) * betAmount
+          const earnings = ((data.player.cashoutMultiplier - 1.0) * betAmount)
+
+
+          // Show success modal
+          showSuccessModal({
+            title: 'Auto Cashed Out!',
+            message: `You automatically cashed out at ${data.player.cashoutMultiplier.toFixed(2)}x for +${earnings.toFixed(3).replace(/\.?0+$/, '')} tokens!`
+          })
+
+          // Update user bet state - always update if it's the current user
+          setUserBet(prev => {
+            // If we have an active bet, update it
+            if (prev && (prev.status === 'active' || prev.status === 'cashed_out')) {
+              return {
+                ...prev,
+                status: 'cashed_out',
+                payout: data.player.payout,
+                cashoutMultiplier: data.player.cashoutMultiplier
+              }
+            } else {
+              // If userBet was null or doesn't exist, create it from player data
+              return {
+                username: currentUsername,
+                betAmount: betAmount,
+                status: 'cashed_out',
+                payout: data.player.payout,
+                cashoutMultiplier: data.player.cashoutMultiplier,
+                isCurrentUser: true
+              } as PlayerBet
+            }
+          })
+        } else {
+          console.log('💰 Not current user, skipping userBet update')
+        }
+      } else {
+        console.log('💰 RoundId mismatch, ignoring event')
       }
     }
 
     const handleGameCrashed = (data: any) => {
-      console.log('💥 Game crashed:', data)
-      if (currentGame?.roundId === data.roundId) {
+      // Compare roundId as strings to handle ObjectId vs string mismatch
+      const roundIdMatches = String(currentGame?.roundId) === String(data.roundId)
+      if (roundIdMatches) {
+        // Persist crash multiplier so UI/chart can keep showing it during the 3s clear delay
+        if (typeof data.crashPoint === 'number') {
+          crashMultiplierRef.current = data.crashPoint
+        }
+
         setCurrentGame(prev => prev ? {
           ...prev,
           status: 'crashed',
-          currentMultiplier: data.crashPoint
+          currentMultiplier: typeof data.crashPoint === 'number' ? data.crashPoint : prev.currentMultiplier
         } : null)
 
         // Mark remaining active bets as lost
@@ -221,13 +412,7 @@ export default function CrashPage() {
           return { ...prev, playerBets: updatedBets }
         })
 
-        // Ensure final crash point captured in chart points
-        setChartPoints(prev => {
-          if (prev.length === 0) return prev
-          const last = prev[prev.length - 1]
-          if (Math.abs((data.crashPoint ?? last.m) - last.m) < 1e-6) return prev
-          return [...prev, { t: last.t, m: Number(data.crashPoint) }]
-        })
+        // Chart will handle crash point automatically
       }
     }
 
@@ -237,12 +422,18 @@ export default function CrashPage() {
     }
 
     const handleCurrentGame = (data: any) => {
-      
+      // Update clock offset if serverTime is provided
+      if (data.serverTime) {
+        const serverTime = typeof data.serverTime === 'number' ? data.serverTime : new Date(data.serverTime).getTime()
+        const localTime = Date.now()
+        clockOffsetRef.current = serverTime - localTime
+      }
+
       setCurrentGame({
         roundId: data.roundId,
         round: data.round,
         status: data.status,
-        currentMultiplier: data.currentMultiplier,
+        currentMultiplier: data.currentMultiplier || 1, // Keep for backward compatibility
         totalBetAmount: data.totalBetAmount,
         playerCount: data.playerCount,
         playerBets: data.playerBets,
@@ -260,7 +451,7 @@ export default function CrashPage() {
         const endAt = new Date(data.bettingEndTime).getTime()
         const now = Date.now()
         const remaining = Math.max(0, endAt - now)
-        
+
         console.log('⏱️ Countdown initialized:', {
           bettingEndTime: data.bettingEndTime,
           endAt,
@@ -268,7 +459,7 @@ export default function CrashPage() {
           remaining,
           remainingSeconds: (remaining / 1000).toFixed(1)
         })
-        
+
         setBettingEndAt(endAt)
         setBettingTimeLeft(remaining)
       } else {
@@ -280,9 +471,12 @@ export default function CrashPage() {
 
     const handleNoActiveGame = () => {
       console.log('❌ No active game')
+      // Reset connection monitoring
+      lastTimeSyncRef.current = null
+      setIsConnectionLost(false)
       setCurrentGame(null)
       setUserBet(null)
-      setChartPoints([])
+      // Chart will reset automatically when new game starts
       setBettingEndAt(null)
       setBettingTimeLeft(0)
     }
@@ -293,6 +487,37 @@ export default function CrashPage() {
         startTime: new Date(game.startTime),
         endTime: new Date(game.endTime)
       })))
+    }
+
+    const handleRoundResult = (data: any) => {
+      // Add new round result to past results (prepend, keep max 6 items)
+      setPastResults(prev => {
+        const newResult: PastResult = {
+          roundId: data.roundId,
+          round: data.round,
+          crashPoint: data.crashPoint
+        }
+        // Track which item will be removed (if we have 6 items, the first one will be removed)
+        const itemToRemove = prev.length >= 12 ? prev[0] : null
+        if (itemToRemove) {
+          setRemovingRoundId(itemToRemove.roundId)
+          // Clear removing state after animation
+          setTimeout(() => setRemovingRoundId(null), 500)
+        }
+        // Mark new item for animation
+        setNewestRoundId(data.roundId)
+        setIsAnimating(true)
+        // Clear animation states after animation completes
+        setTimeout(() => {
+          setNewestRoundId(null)
+          setIsAnimating(false)
+        }, 500)
+        // Store previous state for comparison
+        pastResultsRef.current = prev
+        // Append new result and keep only last 6 (oldest on left, newest on right)
+        const updated = [...prev, newResult]
+        return updated.length > 12 ? updated.slice(updated.length - 12) : updated
+      })
     }
 
     const handleBetPlaced = (data: any) => {
@@ -371,6 +596,7 @@ export default function CrashPage() {
     on('crash_player_cashed_out', handlePlayerCashedOut)
     on('crash_game_crashed', handleGameCrashed)
     on('crash_game_ended', handleGameEnded)
+    on('crash_round_result', handleRoundResult)
     on('crash_current_game', handleCurrentGame)
     on('crash_no_active_game', handleNoActiveGame)
     on('crash_history', handleHistory)
@@ -382,11 +608,14 @@ export default function CrashPage() {
     return () => {
       off('crash_game_started', handleGameStarted)
       off('crash_betting_ended', handleBettingEnded)
+      off('crash_round_state', handleRoundState)
+      off('crash_time_sync', handleTimeSync)
       off('crash_multiplier_update', handleMultiplierUpdate)
       off('crash_player_joined', handlePlayerJoined)
       off('crash_player_cashed_out', handlePlayerCashedOut)
       off('crash_game_crashed', handleGameCrashed)
       off('crash_game_ended', handleGameEnded)
+      off('crash_round_result', handleRoundResult)
       off('crash_current_game', handleCurrentGame)
       off('crash_no_active_game', handleNoActiveGame)
       off('crash_history', handleHistory)
@@ -409,6 +638,38 @@ export default function CrashPage() {
     }, 100)
     return () => clearInterval(timer)
   }, [bettingEndAt])
+
+  // Connection monitoring - check if time sync is still coming
+  useEffect(() => {
+    // Only monitor during running game
+    if (currentGame?.status !== 'running') {
+      setIsConnectionLost(false)
+      return
+    }
+
+    const checkInterval = setInterval(() => {
+      if (!lastTimeSyncRef.current) {
+        // No sync received yet, wait a bit longer (but not forever)
+        // If game is running and no sync received after 5 seconds, show connection lost
+        if (currentGame?.status === 'running') {
+          const timeSinceGameStart = currentGame.startTime ? Date.now() - new Date(currentGame.startTime).getTime() : 0
+          if (timeSinceGameStart > 5000) {
+            setIsConnectionLost(true)
+          }
+        }
+        return
+      }
+
+      const timeSinceLastSync = Date.now() - lastTimeSyncRef.current
+      // If no sync received for 3 seconds, consider connection lost
+      if (timeSinceLastSync > 3000) {
+        setIsConnectionLost(true)
+        console.warn('⚠️ Connection lost: No time sync received for', timeSinceLastSync, 'ms')
+      }
+    }, 500) // Check every 500ms
+
+    return () => clearInterval(checkInterval)
+  }, [currentGame?.status, currentGame?.roundId])
 
   // Draw BC.game style crash visualization
   useEffect(() => {
@@ -502,7 +763,7 @@ export default function CrashPage() {
 
     // Calculate curve points for realistic exponential growth
     const points: { x: number; y: number }[] = []
-    const segments = 300 // Increased for smoother curve
+    const segments = 80 // Increased for smoother curve
 
     for (let i = 0; i <= segments; i++) {
       const progress = i / segments
@@ -731,7 +992,7 @@ export default function CrashPage() {
     setIsPlacingBet(true)
     emit('crash_place_bet', {
       betAmount: betAmount,
-      autoCashoutMultiplier: autoCashout ? autoCashoutMultiplier : undefined
+      autoCashoutMultiplier: autoCashoutMultiplier
     })
   }
 
@@ -744,6 +1005,40 @@ export default function CrashPage() {
       return
     }
     setBetAmount(value)
+  }
+
+  const handleAutoCashoutMultiplierChange = (value: number) => {
+    // Ensure value never goes below 1.01
+    const clampedValue = Math.max(1.01, value)
+    if (clampedValue !== value) {
+      // Value was below minimum, set to 1.01
+      setAutoCashoutMultiplier(1.01)
+    } else {
+      setAutoCashoutMultiplier(clampedValue)
+    }
+  }
+
+  // Helper function to clamp bet amount within min/max limits
+  const clampBetAmount = (value: number): number => {
+    const minBet = settings?.games?.crash?.minBet || 0.001
+    const maxBet = settings?.games?.crash?.maxBet || 1000
+    return Math.max(minBet, Math.min(maxBet, value))
+  }
+
+  // Bet amount control handlers
+  const handleAddAmount = (amount: number) => {
+    const newAmount = clampBetAmount(betAmount + amount)
+    setBetAmount(newAmount)
+  }
+
+  const handleMultiplyAmount = (multiplier: number) => {
+    const newAmount = clampBetAmount(betAmount * multiplier)
+    setBetAmount(newAmount)
+  }
+
+  const handleSetMaxBet = () => {
+    const maxBet = settings?.games?.crash?.maxBet || 1000
+    setBetAmount(maxBet)
   }
 
   const cashOut = async () => {
@@ -762,305 +1057,154 @@ export default function CrashPage() {
         <div className="relative z-10 p-2 sm:p-6">
           <div className="max-w-7xl mx-auto flex flex-col gap-6">
             <div className="lg:grid grid-cols-1 flex-col-reverse flex lg:grid-cols-16 gap-4 lg:gap-8">
-
-              {/* Left Panel - Betting Controls */}
-              <div className="col-span-1 lg:col-span-6 xl:col-span-4 space-y-6 flex">
-                <Card className="bg-background-alt w-full">
-                  <CardBody className="p-6">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <MdAttachMoney className="text-primary" />
-                      Place Bet
-                    </h3>
-
-                    <div className="space-y-4">
-                      <NumberInput
-                        label="Bet Amount"
-                        value={betAmount}
-                        onValueChange={handleBetAmountChange}
-                        max={settings?.games?.crash?.maxBet || 1000}
-                        step={0.001}
-                        placeholder="0.000"
-                        endContent={config.token}
-                        isDisabled={!canPlaceBet}
-                        classNames={{
-                          inputWrapper: "bg-background! rounded-lg"
-                        }}
-                      />
-                      <div className='flex gap-2 justify-between text-xs text-white/50'>
-                        <span>Min Bet: {settings?.games?.crash?.minBet || 0.001}</span>
-                        <span>Max Bet: {settings?.games?.crash?.maxBet || 1000} </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Auto Cashout</span>
-                        <Switch
-                          isSelected={autoCashout}
-                          onValueChange={setAutoCashout}
-                          size="sm"
-                          isDisabled={!canPlaceBet}
-                        />
-                      </div>
-
-                      {autoCashout && (
-                        <NumberInput
-                          label="Auto Cashout at"
-                          value={autoCashoutMultiplier}
-                          onValueChange={setAutoCashoutMultiplier}
-                          min={1.01}
-                          max={1000}
-                          step={0.01}
-                          placeholder="2.00"
-                          endContent="x"
-                          isDisabled={!canPlaceBet}
-                        />
-                      )}
-
-                      {/* Dynamic Action Button */}
-                      {(() => {
-                        // User has active bet and can cash out
-                        if (canCashOut) {
-                          return (
-                            <Button
-                              onPress={cashOut}
-                              variant="solid"
-                              className="w-full font-semibold rounded-full bg-primary text-background"
-                              isLoading={isCashingOut}
-                              startContent={<FaCashRegister />}
-                            >
-                              {isCashingOut ? 'Cashing Out...' : `Cash Out ${(userBet.betAmount * currentGame.currentMultiplier).toFixed(2)}`}
-                            </Button>
-                          );
-                        }
-
-                        // User can place bet (betting phase, no active bet)
-                        if (canPlaceBet) {
-                          return (
-                            <PrimaryButton
-                              onClick={placeBet}
-                              disabled={isPlacingBet}
-                              className="w-full bg-primary text-background font-semibold"
-                              isLoading={isPlacingBet}
-                            >
-                              <FaPlay />
-                              {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
-                            </PrimaryButton>
-                          );
-                        }
-
-                        // User has bet but game is not running yet (waiting for game to start)
-                        if (userBet && currentGame?.status === 'betting') {
-                          return (
-                            <PrimaryButton
-                              className="w-full font-bold rounded-full"
-                              disabled={true}
-                            >
-                              <MdTimer />
-                              Waiting...
-                            </PrimaryButton>
-                          );
-                        }
-
-                        // User has bet but already cashed out or lost
-                        if (userBet && (userBet.status === 'cashed_out' || userBet.status === 'lost')) {
-                          return (
-                            <Button
-                              variant="flat"
-                              className={`w-full text-background font-bold ${userBet.status === 'cashed_out' ? 'bg-primary' : 'bg-danger'} rounded-full`}
-                              isDisabled={true}
-                            >
-                              {userBet.status === 'cashed_out' ? (
-                                <>
-                                  <MdVerifiedUser />
-                                  Cahsed out
-                                </>
-                              ) : (
-                                <>
-                                  <MdStop />
-                                  Crashed
-                                </>
-                              )}
-                            </Button>
-                          );
-                        }
-
-                        // Game is running but user didn't join
-                        if (currentGame?.status === 'running') {
-                          return (
-                            <Button
-                              variant="flat"
-                              className="w-full font-bold rounded-full"
-                              isDisabled={true}
-                            >
-                              <MdTimer />
-                              Join next Round
-                            </Button>
-                          );
-                        }
-
-                        // Default fallback
-                        return (
-                          <Button
-                            color="default"
-                            variant="flat"
-                            className="w-full font-bold rounded-full"
-                            isDisabled={true}
-                          >
-                            <MdTimer />
-                            Waiting...
-                          </Button>
-                        );
-                      })()}
-                    </div>
-                  </CardBody>
-                </Card>
-
-                {/* Game Status */}
-                {/* <Card className="bg-background-alt">
-                  <CardBody className="p-6">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <MdTimer className="text-primary" />
-                      Game Status
-                    </h3>
-
-                    {currentGame ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span>Round:</span>
-                          <span className="font-mono">#{currentGame.round}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Status:</span>
-                          <Chip
-                            size="sm"
-                            color={
-                              currentGame.status === 'betting' ? 'warning' :
-                                currentGame.status === 'running' ? 'success' :
-                                  'danger'
-                            }
-                          >
-                            {currentGame.status.toUpperCase()}
-                          </Chip>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Players:</span>
-                          <span>{currentGame.playerCount}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Bets:</span>
-                          <span>{currentGame.totalBetAmount.toFixed(4)} USDT</span>
-                        </div>
-                        {bettingTimeLeft > 0 && (
-                          <div className="flex justify-between">
-                            <span>Betting Time:</span>
-                            <span className="font-mono text-warning">
-                              {Math.ceil(bettingTimeLeft / 1000)}s
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-gray-400">Waiting for next game...</p>
-                    )}
-                  </CardBody>
-                </Card> */}
-              </div>
-
               {/* Center Panel - Game Chart */}
-              <div className="col-span-1 lg:col-span-10 xl:col-span-12 2xl:col-span-8">
-                <Card className="bg-background-alt border-slate-700 overflow-hidden">
-                  <CardBody className="p-0 relative">
-                    {/* Game Status Overlay */}
-                    {currentGame && (
-                      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 max-w-[90%]">
-
-
-                        <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-12">
-                          <div className='flex flex-col'>
-                            <div className="text-xs text-gray-400">Round #{currentGame.round}</div>
-                          </div>
-
-                          {(currentGame.serverSeedHash && currentGame.publicSeed) && (
-                            <Popover showArrow offset={10} placement="top">
-                              <PopoverTrigger>
-                                <FaInfoCircle className='cursor-pointer'/>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[400px] bg-background-alt">
-                                <div className="flex flex-col gap-1 w-full ">
-                                  <div className="flex items-center justify-between w-full gap-1">
-                                    <span className="text-gray-400 min-w-[150px]">Server Seed Hash:</span>
-                                    <Snippet
-                                      symbol=''
-                                      className="w-full text-xs"
-                                      classNames={{
-                                        pre: "max-w-[150px]! sm:max-w-full truncate",
-                                      }}
-                                    >
-                                      {currentGame.serverSeedHash}
-                                    </Snippet>
-                                  </div>
-                                  <div className="flex items-center justify-between w-full gap-1">
-                                    <span className="text-gray-400 min-w-[150px]">Public Seed:</span>
-                                    <Snippet
-                                      symbol=''
-                                      className="w-full text-xs"
-                                      classNames={{
-                                        pre: "max-w-[150px]! sm:max-w-full truncate",
-                                      }}
-                                    >
-                                      {currentGame.publicSeed}
-                                    </Snippet>
+              <div className="col-span-16 xl:col-span-12">
+                <div className='flex flex-col gap-4'>
+                  <Card className='bg-background-alt'>
+                    <CardBody>
+                      {/* Past Results Display */}
+                      {pastResults.length > 0 && (
+                        <div className="px-4 pt-4 pb-2 flex gap-2 items-center">
+                          <div className="flex items-center justify-end flex-1 gap-2 overflow-hidden relative">
+                            {pastResults.map((result, index) => {
+                              const isHigh = result.crashPoint >= 10.0
+                              const isMedium = result.crashPoint >= 2.0
+                              const isNew = result.roundId === newestRoundId
+                              const isRemoving = result.roundId === removingRoundId
+                              const wasInPrevious = pastResultsRef.current.some(r => r.roundId === result.roundId)
+                              const isShifting = !isNew && !isRemoving && wasInPrevious && isAnimating
+                              return (
+                                <div
+                                  key={result.roundId}
+                                  className={`w-20 flex items-center gap-2 px-2 py-1 rounded-lg text-xs whitespace-nowrap flex-shrink-0
+                                    ${isHigh ? 'bg-yellow-500/10' : isMedium ? 'bg-green-500/10' : 'bg-red-500/10'}
+                                    ${isHigh ? 'text-yellow-500' : isMedium ? 'text-green-500' : 'text-red-500'}
+                                    ${isNew ? 'animate-[slideInRight_0.5s_ease-out]' : ''}
+                                    ${isRemoving ? 'animate-[slideOutLeft_0.5s_ease-out]' : ''}
+                                    ${isShifting ? 'animate-[shiftLeft_0.5s_ease-out]' : ''}
+                                  `}
+                                >
+                                  <FaCircle className={`text-[10px] ${isHigh ? 'text-yellow-500' : isMedium ? 'text-green-500' : 'text-red-500'}`} />
+                                  <div className='flex flex-col'>
+                                    <span className="text-gray-400">{result.round}</span>
+                                    <span className="text-sm font-semibold">{result.crashPoint.toFixed(2)}x</span>
                                   </div>
                                 </div>
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Waiting for Game Overlay  */}
-                    {!currentGame && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-20">
-                        <div className="text-center pb-20">
-                          <div className="text-2xl font-bold text-white mb-2">Waiting for next round...</div>
-                          <div className="text-gray-400">Get ready to place your bets!</div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="w-full h-[450px] block relative  rounded-lg overflow-hidden">
-                      {/* Game Status Overlay */}
-                      <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
-                        <div className="backdrop-blur-sm rounded-lg px-3 py-2">
-                          <Chip
-                            size="sm"
-                            color={
-                              currentGame?.status === 'betting' ? 'warning' :
-                                currentGame?.status === 'running' ? 'success' :
-                                  'danger'
-                            }
-                          >
-                            {currentGame?.status.toUpperCase()}
-                          </Chip>
-                        </div>
-                      </div>
-                      {currentGame && currentGame.status === 'betting' ?
-                        <div className='absolute flex gap-2 items-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10'>
-                          <FaClock className='text-primary text-3xl' />
-                          <div className='relative flex gap-2 text-primary text-4xl'>
-                            <p className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-4xl font-bold animate-ping'>{Math.ceil(bettingTimeLeft / 1000)}</p>
-                            <p>{Math.ceil(bettingTimeLeft / 1000)}</p>
+                              )
+                            })}
+                          </div>
+                          <div className='shrink-0'>
+                            <Button
+                              className='h-[45px] min-w-[45px] bg-background-alt border-primary/10 border text-primary'
+                              onPress={() => setIsHistoryModalOpen(true)}
+                            >
+                              <FaHistory />
+                            </Button>
                           </div>
                         </div>
-                        :
-                        <div className={`flex gap-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-4xl font-bold ${currentGame?.status === 'running' ? 'text-green-400' :
-                          currentGame?.status === 'crashed' ? 'text-red-400' :
-                            'text-gray-400'
-                          }`}>
-                          {/* {currentGame?.currentMultiplier?.toFixed(2) || '1.00'}x */}
+                      )}
+                    </CardBody>
+                  </Card>
+                  <Card className="bg-background-alt border-slate-700 overflow-hidden">
+                    <CardBody className="p-0 relative">
+
+                      {/* Game Status Overlay */}
+                      {currentGame && (
+                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 max-w-[90%]">
+
+
+                          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-12">
+                            <div className='flex flex-col'>
+                              <div className="text-xs text-gray-400">Round #{currentGame.round}</div>
+                            </div>
+
+                            {(currentGame.serverSeedHash && currentGame.publicSeed) && (
+                              <Popover showArrow offset={10} placement="top">
+                                <PopoverTrigger>
+                                  <FaInfoCircle className='cursor-pointer' />
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[400px] bg-background-alt">
+                                  <div className="flex flex-col gap-1 w-full ">
+                                    <div className="flex items-center justify-between w-full gap-1">
+                                      <span className="text-gray-400 min-w-[150px]">Server Seed Hash:</span>
+                                      <Snippet
+                                        symbol=''
+                                        className="w-full text-xs"
+                                        classNames={{
+                                          pre: "max-w-[150px]! sm:max-w-full truncate",
+                                        }}
+                                      >
+                                        {currentGame.serverSeedHash}
+                                      </Snippet>
+                                    </div>
+                                    <div className="flex items-center justify-between w-full gap-1">
+                                      <span className="text-gray-400 min-w-[150px]">Public Seed:</span>
+                                      <Snippet
+                                        symbol=''
+                                        className="w-full text-xs"
+                                        classNames={{
+                                          pre: "max-w-[150px]! sm:max-w-full truncate",
+                                        }}
+                                      >
+                                        {currentGame.publicSeed}
+                                      </Snippet>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
                         </div>
-                      }
-                      {/* <LiveLineChartNoSnap
+                      )}
+
+                      {/* Waiting for Game Overlay  */}
+                      {!currentGame && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-20">
+                          <div className="text-center pb-20">
+                            <div className="text-2xl font-bold text-white mb-2">Waiting for next round...</div>
+                            <div className="text-gray-400">Get ready to place your bets!</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="w-full h-[450px] block relative  rounded-lg overflow-hidden">
+                        {/* Connection Lost Overlay */}
+                        {isConnectionLost && currentGame?.status === 'running' && currentGame.currentMultiplier > 100 && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-30">
+                            <div className="text-center">
+                              <FaWifi className="text-6xl text-red-500 mx-auto mb-4 animate-pulse" />
+                              <div className="text-2xl font-bold text-white mb-2">Connection Lost</div>
+                              <div className="text-gray-400">Reconnecting to server...</div>
+                              <div className="text-sm text-gray-500 mt-2">The chart will resume when connection is restored</div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Game Status Overlay */}
+                        <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
+                          <div className="backdrop-blur-sm rounded-lg px-3 py-2">
+                            <Chip
+                              size="sm"
+                              color={
+                                currentGame?.status === 'betting' ? 'warning' :
+                                  currentGame?.status === 'running' ? 'success' :
+                                    'danger'
+                              }
+                            >
+                              {currentGame?.status.toUpperCase()}
+                            </Chip>
+                          </div>
+                        </div>
+                        {currentGame && currentGame.status === 'betting' && (
+                          <div className='absolute flex gap-2 items-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10'>
+                            <FaClock className='text-primary text-3xl' />
+                            <div className='relative flex gap-2 text-primary text-4xl'>
+                              <p className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-4xl font-bold animate-ping'>{Math.ceil(bettingTimeLeft / 1000)}</p>
+                              <p>{Math.ceil(bettingTimeLeft / 1000)}</p>
+                            </div>
+                          </div>
+                        ) }
+                        {/* <LiveLineChartNoSnap
                         multiplierHistory={multiplierHistory}
                         elapsedTime={(() => {
                           if (!currentGame || currentGame.status === 'betting') return 0;
@@ -1071,54 +1215,311 @@ export default function CrashPage() {
                         })()}
                         gameStatus={currentGame?.status || 'betting'}
                         /> */}
-                      <CrashPixiChart
-                        status={(currentGame?.status as any) || 'betting'}
-                        currentMultiplier={currentGame?.currentMultiplier || 1}
-                        startTime={currentGame?.startTime ? new Date(currentGame.startTime) : undefined}
-                        points={chartPoints}
-                        playerBets={currentGame?.playerBets || []}
-                      />
-                    </div>
-                  </CardBody>
-                </Card>
+                        
+                        <CrashPixiChart
+                          status={(currentGame?.status as any) || 'betting'}
+                          startTime={currentGame?.startTime ? new Date(currentGame.startTime) : undefined}
+                          crashMultiplier={crashMultiplierRef.current}
+                          playerBets={currentGame?.playerBets || []}
+                        />
+                      </div>
+                    </CardBody>
+                  </Card>
+                  <Card className="bg-background-alt w-full">
+                    <CardBody className="p-6">
+                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <MdAttachMoney className="text-primary" />
+                        Place Bet
+                      </h3>
 
-                {/* User's Bet Status */}
-                {userBet && (
-                  <Card className="bg-background-alt mt-6">
-                    <CardBody className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-sm text-gray-400">Your Bet:</span>
-                          <div className="font-bold">{userBet.betAmount.toFixed(3).replace(/\.?0+$/, '')} USDT</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Status:</span>
-                          <div>
-                            <Chip
-                              size="sm"
-                              color={
-                                userBet.status === 'active' ? 'warning' :
-                                  userBet.status === 'cashed_out' ? 'success' :
-                                    'danger'
-                              }
-                            >
-                              {userBet.status.replace('_', ' ').toUpperCase()}
-                            </Chip>
+                      <div className="space-y-4 flex flex-col md:flex-col-reverse gap-4">
+                        <div className='flex flex-col md:flex-row gap-4'>
+                          <div className='flex flex-col gap-2 w-full'>
+                            <div className='flex gap-2 justify-between text-xs text-white/50'>
+                              <span>Min Bet: {settings?.games?.crash?.minBet || 0.001}</span>
+                              <span>Max Bet: {settings?.games?.crash?.maxBet || 1000} </span>
+                            </div>
+                            <NumberInput
+                              value={betAmount}
+                              onValueChange={handleBetAmountChange}
+                              max={settings?.games?.crash?.maxBet || 1000}
+                              step={0.001}
+                              placeholder="0.000"
+                              endContent={config.token}
+                              isDisabled={!canPlaceBet}
+                              classNames={{
+                                inputWrapper: "bg-background! rounded-lg"
+                              }}
+                            />
+                            {/* Bet Amount Control Buttons */}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAddAmount(0.01)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                +0.01
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAddAmount(0.1)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                +0.1
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleMultiplyAmount(0.5)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                1/2
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleMultiplyAmount(2)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                ×2
+                              </Button>
+                              {/* <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={handleSetMaxBet}
+                                isDisabled={!canPlaceBet}
+                              >
+                                MAX
+                              </Button> */}
+                            </div>
+
+                          </div>
+                          <div className="flex flex-col gap-2 w-full">
+                            <div className='flex justify-between w-full text-xs text-white/50'>
+                              <p>Auto cash out</p>
+                              <p>Chance {winningChance}%</p>
+                            </div>
+                            <NumberInput
+                              value={autoCashoutMultiplier}
+                              onValueChange={handleAutoCashoutMultiplierChange}
+                              min={1.01}
+                              max={1000}
+                              step={0.01}
+                              placeholder="2.00"
+                              endContent="x"
+                              classNames={{
+                                inputWrapper: "bg-background! rounded-lg"
+                              }}
+                              isDisabled={!canPlaceBet}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAutoCashoutMultiplierChange(1.01)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                1.01
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAutoCashoutMultiplierChange(2)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                2
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAutoCashoutMultiplierChange(10)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                10
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                className="flex-1 min-w-[60px] bg-background hover:bg-background/80 text-white"
+                                onPress={() => handleAutoCashoutMultiplierChange(100)}
+                                isDisabled={!canPlaceBet}
+                              >
+                                100
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Payout:</span>
-                          <div className="font-bold text-success">
-                            {userBet.payout.toFixed(3).replace(/\.?0+$/, '')} USDT
-                          </div>
+
+                        {/* Dynamic Action Button */}
+                        <div className='flex items-center justify-center'>
+                          {(() => {
+                            // User has active bet and can cash out
+                            if (canCashOut) {
+                              return (
+                                <Button
+                                  onPress={cashOut}
+                                  variant="solid"
+                                  className="w-full max-w-xs mx-auto font-semibold rounded-full bg-primary text-background"
+                                  isLoading={isCashingOut}
+                                  startContent={<FaCashRegister />}
+                                >
+                                  {isCashingOut ? 'Cashing Out...' : (() => {
+                                    // Calculate current multiplier locally for accurate display
+                                    let currentMult = 1
+                                    if (currentGame?.startTime && currentGame.status === 'running') {
+                                      const elapsed = Math.max(0, (Date.now() - new Date(currentGame.startTime).getTime() + (clockOffsetRef.current || 0)) / 1000)
+                                      // Use same formula as calculateMultiplier function
+                                      if (elapsed > 0) {
+                                        const A = 0.02
+                                        const B0 = 1.5
+                                        const B_GROWTH = 0.01
+                                        const MAX_B = 3.0
+                                        const dynamicB = Math.min(MAX_B, B0 + B_GROWTH * elapsed)
+                                        const multiplier = 1 + A * Math.pow(elapsed, dynamicB)
+                                        const MAX_SAFE_MULTIPLIER = 1000
+                                        currentMult = Math.min(multiplier, MAX_SAFE_MULTIPLIER)
+                                      }
+                                    } else {
+                                      currentMult = currentGame?.currentMultiplier || 1
+                                    }
+                                    const expectedPayout = (currentMult - 1.0) * userBet.betAmount
+                                    return `Cash Out +${expectedPayout.toFixed(2)}`
+                                  })()}
+                                </Button>
+                              );
+                            }
+
+                            // User can place bet (betting phase, no active bet)
+                            if (canPlaceBet) {
+                              return (
+                                <PrimaryButton
+                                  onClick={placeBet}
+                                  disabled={isPlacingBet}
+                                  className="w-full max-w-xs mx-auto bg-primary text-background font-semibold"
+                                  isLoading={isPlacingBet}
+                                >
+                                  <FaPlay />
+                                  {isPlacingBet ? 'Placing Bet...' : 'Place Bet'}
+                                </PrimaryButton>
+                              );
+                            }
+
+                            // User has bet but already cashed out or lost (check this before other statuses)
+                            if (userBet && (userBet.status === 'cashed_out' || userBet.status === 'lost')) {
+                              return (
+                                <Button
+                                  variant="flat"
+                                  className={`w-full max-w-xs mx-auto text-background font-bold ${userBet.status === 'cashed_out' ? 'bg-primary' : 'bg-danger'} rounded-full`}
+                                  isDisabled={true}
+                                >
+                                  {userBet.status === 'cashed_out' ? (
+                                    <>
+                                      <MdVerifiedUser />
+                                      Cahsed out
+                                    </>
+                                  ) : (
+                                    <>
+                                      <MdStop />
+                                      Crashed
+                                    </>
+                                  )}
+                                </Button>
+                              );
+                            }
+
+                            // User has bet but game is not running yet (waiting for game to start)
+                            if (userBet && currentGame?.status === 'betting') {
+                              return (
+                                <PrimaryButton
+                                  className="w-full max-w-xs mx-auto font-bold rounded-full"
+                                  disabled={true}
+                                >
+                                  <MdTimer />
+                                  Waiting...
+                                </PrimaryButton>
+                              );
+                            }
+
+                            // Game is running but user didn't join
+                            if (currentGame?.status === 'running') {
+                              return (
+                                <Button
+                                  variant="flat"
+                                  className="w-full max-w-xs mx-auto font-bold rounded-full"
+                                  isDisabled={true}
+                                >
+                                  <MdTimer />
+                                  Join next Round
+                                </Button>
+                              );
+                            }
+
+                            // Default fallback
+                            return (
+                              <Button
+                                color="default"
+                                variant="flat"
+                                className="w-full max-w-xs mx-auto font-bold rounded-full"
+                                isDisabled={true}
+                              >
+                                <MdTimer />
+                                Waiting...
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </CardBody>
                   </Card>
-                )}
+                  {/* User's Bet Status */}
+                  {userBet && (
+                    <Card className="bg-background-alt mt-6 hidden">
+                      <CardBody className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm text-gray-400">Your Bet:</span>
+                            <div className="font-bold">{userBet.betAmount.toFixed(3).replace(/\.?0+$/, '')} USDT</div>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Status:</span>
+                            <div>
+                              <Chip
+                                size="sm"
+                                color={
+                                  userBet.status === 'active' ? 'warning' :
+                                    userBet.status === 'cashed_out' ? 'success' :
+                                      'danger'
+                                }
+                              >
+                                {userBet.status.replace('_', ' ').toUpperCase()}
+                              </Chip>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Payout:</span>
+                            <div className="font-bold text-success">
+                              {userBet.payout.toFixed(3).replace(/\.?0+$/, '')} USDT
+                            </div>
+
+                          </div>
+                        </div>
+                      </CardBody>
+                    </Card>
+                  )}
+                </div>
               </div>
 
-              <div className='hidden 2xl:flex col-span-4'>
+              <div className='hidden xl:flex col-span-4'>
                 <Card className="bg-background-alt w-full">
                   <CardBody className="p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -1133,7 +1534,7 @@ export default function CrashPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1 max-h-80 overflow-y-auto scrollbar-hide">
+                    <div className="space-y-1 max-h-100 overflow-y-auto scrollbar-hide">
                       {currentGame?.playerBets.map((bet, index) => (
                         <div
                           key={index}
@@ -1168,7 +1569,7 @@ export default function CrashPage() {
                               <div className="flex flex-col items-end">
                                 <span className="text-sm font-bold text-green-400">CASHED OUT</span>
                                 <span className="text-xs text-green-300 font-mono">
-                                  {config.token} {(bet.payout || bet.betAmount * (bet.cashoutMultiplier || 0)).toFixed(2)}
+                                  +{config.token} {((bet.cashoutMultiplier - 1.0) * bet.betAmount).toFixed(2)}
                                 </span>
                               </div>
                             ) : bet.status === 'active' && currentGame?.status === 'running' ? (
@@ -1330,6 +1731,12 @@ export default function CrashPage() {
           </div>
         </div>
       </div>
+
+      {/* Crash History Modal */}
+      <CrashHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+      />
     </GameStatusWrapper >
   )
 }

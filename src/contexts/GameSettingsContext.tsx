@@ -40,6 +40,9 @@ interface GameSettingsContextType {
   refreshSettings: () => void;
   isMobileScreen: boolean;
   isTabletScreen: boolean;
+  toggleDropdown: (dropdown: string) => void;
+  openDropdown: string | null;
+  setOpenDropdown: (dropdown: string | null) => void;
   isSidebarOpen: boolean;
   selectedOption: string | null;
   setSelectedOption: (option: string | null) => void;
@@ -61,6 +64,8 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
   const [loading, setLoading] = useState(true);
   const [isMobileScreen, setIsMobileScreen] = useState(false);
   const [isTabletScreen, setIsTabletScreen] = useState(false);
+  const [dropdown, setDropdown] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +73,14 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
   const [isChatBoxOpen, setIsChatBoxOpen] = useState(false);
   const [isChatBoxCollapsed, setIsChatBoxCollapsed] = useState(false);
 
+  const toggleDropdown = (option: string) => {
+    if (openDropdown === option) {
+      setOpenDropdown(null);
+    } else {
+      setOpenDropdown(option);
+    }
+    setOpenDropdown(option);
+  };
   // Store callback functions for cleanup
   const settingsCallback = useCallback((data: any) => {
     console.log('🔄 Game settings loaded', data);
@@ -210,6 +223,9 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
     loading,
     isMobileScreen,
     isTabletScreen,
+    toggleDropdown,
+    openDropdown,
+    setOpenDropdown,
     isSidebarOpen,
     isChatBoxOpen,
     isChatBoxCollapsed,
@@ -221,7 +237,7 @@ export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ chil
     setSelectedOption,
     setIsSidebarOpen,
     setIsChatBoxOpen,
-    setIsChatBoxCollapsed
+    setIsChatBoxCollapsed,
   };
 
   const handleWindowResize = () => {

@@ -1,22 +1,46 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import PrimaryButton from "@/components/ui/PrimaryButton";
-import { Button, Card, CardBody, Tabs, Tab, Select, SelectItem, Avatar, Snippet, Input } from "@heroui/react";
+import { Card, CardBody, Tabs, Tab, Select, SelectItem, Avatar, Snippet, Input, Button } from "@heroui/react";
 import { gameApi } from '@/lib/api'
-import { UserWallet, PaymentTransaction, PaymentStats, PaymentChain, PaymentToken } from '@/types/payment'
+import { UserWallet, PaymentStats, PaymentChain, PaymentToken } from '@/types/payment'
 import { useAuth } from '@/contexts/AuthContext'
 import QRCode from '@/components/QRCode'
 import { useModalType } from '@/contexts/modalContext';
 import PaymentTransactionHistory from '@/components/table/PaymentTransactionHistory'
+import { useWebSocket } from '@/contexts/socketContext'
+
+// NOW Payments crypto options (same list as HyperPack)
+const CRYPTO_OPTIONS = [
+  { id: 'usdterc20', name: 'Tether', symbol: 'USDT', network: 'Ethereum' },
+  { id: 'btc', name: 'Bitcoin', symbol: 'BTC', network: 'Bitcoin' },
+  { id: 'usdc', name: 'USD Coin', symbol: 'USDC', network: 'Ethereum' },
+  { id: 'eth', name: 'Ethereum', symbol: 'ETH', network: 'Ethereum' },
+  { id: 'sol', name: 'Solana', symbol: 'SOL', network: 'Solana' },
+  { id: 'xrp', name: 'Ripple', symbol: 'XRP', network: 'Ripple' },
+  { id: 'ltc', name: 'Litecoin', symbol: 'LTC', network: 'Litecoin' },
+  { id: 'dai', name: 'Dai', symbol: 'DAI', network: 'Ethereum' },
+]
 
 export default function WalletPage() {
-  const { user } = useAuth()
+  const { user, refreshProfile } = useAuth()
   const { showModal: showErrorModal } = useModalType('error')
+  const { on, off } = useWebSocket()
   const [wallets, setWallets] = useState<UserWallet[]>([])
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [selected, setSelected] = React.useState<React.Key>("deposit");
+  const [selected, setSelected] = React.useState<React.Key>("deposit")
+
+  // NOW Payments deposit state
+  const [selectedCrypto, setSelectedCrypto] = useState<string | null>(null)
+  const [showDepositDetails, setShowDepositDetails] = useState(false)
+  const [depositId, setDepositId] = useState<string | null>(null)
+  const [payAddress, setPayAddress] = useState('')
+  const [payAmount, setPayAmount] = useState('')
+  const [minDepositAmount, setMinDepositAmount] = useState('')
+  const [depositStatus, setDepositStatus] = useState<string>('PENDING')
+  const [isStarting, setIsStarting] = useState(false)
 
   const [chains, setChains] = useState<PaymentChain[]>([])
   const [tokens, setTokens] = React.useState<PaymentToken[]>([])
@@ -65,11 +89,59 @@ export default function WalletPage() {
     await loadPaymentStats()
   }
 
+  const handleStartDeposit = useCallback(async () => {
+    if (!selectedCrypto) return
+    setIsStarting(true)
+    try {
+      const response = await gameApi.payment.startNowPaymentsDeposit({
+        pay_currency: selectedCrypto,
+      })
+      const data = response.data as any
+      const payload = data?.data ?? data
+      if (!response.success || !payload) {
+        showErrorModal({
+          title: 'Deposit failed',
+          message: (response as any).error || 'Could not start deposit',
+          onClose: () => {},
+        })
+        return
+      }
+      setDepositId(payload.depositRequestId)
+      setPayAddress(payload.payAddress || '')
+      setPayAmount(payload.payAmount || '')
+      setMinDepositAmount(payload.minDepositAmount || payload.payAmount || '')
+      setDepositStatus(payload.status || 'PENDING')
+      setShowDepositDetails(true)
+    } catch (e) {
+      console.error('Start deposit error:', e)
+      showErrorModal({
+        title: 'Deposit failed',
+        message: e instanceof Error ? e.message : 'Failed to start deposit',
+        onClose: () => {},
+      })
+    } finally {
+      setIsStarting(false)
+    }
+  }, [selectedCrypto, showErrorModal])
+
   useEffect(() => {
-    console.log("chains", chains)
+    const handleDepositStatus = (data: { depositId?: string; status?: string }) => {
+      if (depositId && data.depositId === depositId) {
+        setDepositStatus(data.status || 'PENDING')
+        if (data.status === 'COMPLETED') {
+          refreshProfile()
+          refreshPaymentStats()
+        }
+      }
+    }
+    on('deposit:status-updated', handleDepositStatus)
+    return () => off('deposit:status-updated', handleDepositStatus)
+  }, [depositId, on, off, refreshProfile])
+
+  useEffect(() => {
     setSelectedChain(chains[0]?.chainId)
-    if (paymentWallets.length === 0) {
-      const chainIds = chains.map(c => c.chainId).join(",");
+    if (paymentWallets.length === 0 && chains.length > 0) {
+      const chainIds = chains.map(c => c.chainId).join(",")
       loadWallets(chainIds)
     }
   }, [chains])
@@ -290,164 +362,92 @@ export default function WalletPage() {
             }}
           >
             <Tab key="deposit" title="Deposit">
-              <div className='flex flex-col gap-2 w-full'>
-                <div className='flex flex-col lg:flex-row gap-2 w-full'>
-                  <Select
-                    className=""
-                    classNames={{
-                      label: "hidden",
-                      listboxWrapper: "max-h-[400px]",
-                      innerWrapper: 'pt-0!',
-                      trigger:"bg-background"
-                    }}
-                    selectedKeys={selectedChain ? [String(selectedChain)] as any : []}
-                    onChange={(e) => { if (e.target.value) setSelectedChain(e.target.value as any) }}
-                    items={chains}
-                    label="Assigned to"
-                    listboxProps={{
-                      itemClasses: {
-                        base: [
-                          "rounded-md",
-                          "text-default-500",
-                          "transition-opacity",
-                          "data-[hover=true]:text-foreground",
-                          "data-[hover=true]:bg-default-100",
-                          "dark:data-[hover=true]:bg-default-50",
-                          "data-[selectable=true]:focus:bg-default-50",
-                          "data-[pressed=true]:opacity-70",
-                          "data-[focus-visible=true]:ring-default-500",
-                        ],
-                      },
-                    }}
-                    popoverProps={{
-                      classNames: {
-                        base: "before:bg-default-200",
-                        content: "p-0 border-small border-divider bg-background",
-                      },
-                    }}
-                    renderValue={(items) => {
-                      return items.map((item: any) => (
-                        <div key={item.key} className="flex items-center gap-2">
-                          <Avatar alt={item.data.name} className="shrink-0" size="sm" src={`/assets/images/tokens/${item.data.symbol}.webp`} />
-                          <div className="flex flex-col">
-                            <span>{item.data.chainName}</span>
-                          </div>
-                        </div>
-                      ));
-                    }}
-                  >
-                    {(chain: PaymentChain) => (
-                      <SelectItem key={chain.chainId} textValue={chain.name}>
-                        <div className="flex gap-2 items-center">
-                          <Avatar alt={chain.name} className="shrink-0" size="sm" src={`/assets/images/tokens/${chain.symbol}.webp`} />
-                          <div className="flex flex-col">
-                            <span className="text-small">{chain.chainName}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    )}
-                  </Select>
-                  <Select
-                    className=""
-                    classNames={{
-                      label: "hidden",
-                      listboxWrapper: "max-h-[400px]",
-                      innerWrapper: 'pt-0!',
-                      trigger:"bg-background"
-                    }}
-                    selectedKeys={selectedToken ? [String(selectedToken)] as any : []}
-                    onChange={(e) => { if (e.target.value) setSelectedToken(e.target.value as any) }}
-                    items={tokens}
-                    label="Assigned to"
-                    listboxProps={{
-                      itemClasses: {
-                        base: [
-                          "rounded-md",
-                          "text-default-500",
-                          "transition-opacity",
-                          "data-[hover=true]:text-foreground",
-                          "data-[hover=true]:bg-default-100",
-                          "dark:data-[hover=true]:bg-default-50",
-                          "data-[selectable=true]:focus:bg-default-50",
-                          "data-[pressed=true]:opacity-70",
-                          "data-[focus-visible=true]:ring-default-500",
-                        ],
-                      },
-                    }}
-                    popoverProps={{
-                      classNames: {
-                        base: "before:bg-default-200",
-                        content: "p-0 border-small border-divider bg-background",
-                      },
-                    }}
-                    renderValue={(items) => {
-                      return items.map((item: any) => (
-                        <div key={item.key} className="flex items-center gap-2">
-                          <Avatar alt={item.data.name} className="shrink-0" size="sm" src={`/assets/images/tokens/${item.data.symbol}.webp`} />
-                          <div className="flex flex-col">
-                            <span>{item.data.name}</span>
-                            <span className='text-xs text-default-400'>{item.data.chain}</span>
-                          </div>
-                        </div>
-                      ));
-                    }}
-                  >
-                    {(token: PaymentToken) => (
-                      <SelectItem key={token.id} textValue={token.name}>
-                        <div className="flex gap-2 items-center">
-                          <Avatar alt={token.name} className="shrink-0" size="sm" src={`/assets/images/tokens/${token.symbol}.webp`} />
-                          <div className="flex flex-col">
-                            <span className="text-small">{token.name}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    )}
-                  </Select>
-                </div>
-                <div className='flex flex-col lg:flex-row gap-4 w-full items-center py-4'>
-                  {/* QR Code */}
-                  <div className='flex flex-col items-center gap-2'>
-                    <QRCode
-                      value={paymentWallets?.filter(w => w.chainID.toString() === selectedChain)[0]?.address || ''}
-                      size={200}
-                      className="p-2 bg-white rounded-lg shadow-sm"
-                    />
-                    <p className="text-xs text-gray-500 text-center">
-                      Scan to copy address
-                    </p>
-                  </div>
-
-                  {/* Address and Instructions */}
-                  <div className='flex flex-col gap-3 flex-1 w-full md:w-auto'>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Deposit Address:
-                      </p>
-                      <Snippet
-                        symbol=''
-                        className="w-full text-xs bg-background"
-                        classNames={{
-                          pre:"max-w-[200px] sm:max-w-full truncate",
-                        }}
-                      >
-                          {paymentWallets?.filter(w => w.chainID.toString() === selectedChain)[0]?.address || 'No address available'}
-                      </Snippet>
+              <div className="flex flex-col gap-4 w-full">
+                {!showDepositDetails ? (
+                  <>
+                    <p className="text-sm text-default-500">Select a currency and start deposit to get your unique address.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+                      {CRYPTO_OPTIONS.map((crypto) => (
+                        <Button
+                          key={crypto.id}
+                          onPress={() => setSelectedCrypto(selectedCrypto === crypto.id ? null : crypto.id)}
+                          className={`flex flex-col items-center gap-2 min-h-[100px] ${
+                            selectedCrypto === crypto.id
+                              ? 'bg-primary/20 border-2 border-primary'
+                              : 'bg-background hover:bg-default-100 border border-default-200'
+                          }`}
+                        >
+                          <Avatar
+                            size="sm"
+                            src={`/assets/images/tokens/${crypto.symbol.toLowerCase()}.webp`}
+                            name={crypto.symbol}
+                            className="shrink-0"
+                          />
+                          <span className="text-sm font-medium text-foreground">{crypto.name}</span>
+                          <span className="text-xs text-default-400">{crypto.symbol}</span>
+                        </Button>
+                      ))}
                     </div>
-
-                    <div className="bg-background border border-danger-100 rounded-lg p-3">
-                      <p className="text-md text-danger-300 font-semibold mb-1">
-                        Deposit Instructions:
-                      </p>
-                      <ul className="text-xs text-danger-400 space-y-1">
-                        <li>• Send only {tokens.find(t => t.id === selectedToken)?.name || 'selected token'} to this address</li>
-                        <li>• Ensure you are using the correct network ({selectedChain === '1' ? 'Ethereum' : selectedChain === '56' ? 'BSC' : `Chain ${selectedChain}`})</li>
-                        <li>• Deposits will be credited after network confirmation</li>
-                        <li>• Minimum deposit: 1 {tokens.find(t => t.id === selectedToken)?.name || 'tokens'}</li>
-                      </ul>
+                    <PrimaryButton
+                      className="bg-primary hover:bg-primary/80 text-background font-semibold"
+                      onClick={handleStartDeposit}
+                      isLoading={isStarting}
+                      disabled={!selectedCrypto || isStarting}
+                    >
+                      Start Deposit
+                    </PrimaryButton>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-default-500">Status:</span>
+                      <span className="text-sm font-medium capitalize">{depositStatus.toLowerCase()}</span>
                     </div>
-                  </div>
-                </div>
-
+                    <div className="flex flex-col lg:flex-row gap-6 w-full items-start">
+                      <div className="flex flex-col items-center gap-2 shrink-0">
+                        <QRCode
+                          value={payAddress}
+                          size={200}
+                          className="p-2 bg-white rounded-lg shadow-sm"
+                        />
+                        <p className="text-xs text-default-500">Scan to copy address</p>
+                      </div>
+                      <div className="flex flex-col gap-3 flex-1 min-w-0">
+                        <div>
+                          <p className="text-sm font-medium text-default-700 mb-1">Deposit Address</p>
+                          <Snippet symbol="" className="w-full text-xs bg-background" classNames={{ pre: 'max-w-full truncate' }}>
+                            {payAddress || '—'}
+                          </Snippet>
+                        </div>
+                        {minDepositAmount && (
+                          <p className="text-xs text-default-500">
+                            Min amount: <span className="text-foreground font-medium">{minDepositAmount} {CRYPTO_OPTIONS.find(c => c.id === selectedCrypto)?.symbol ?? ''}</span>
+                          </p>
+                        )}
+                        <div className="bg-background border border-danger-200 rounded-lg p-3 mt-2">
+                          <p className="text-sm text-danger font-semibold mb-1">Instructions</p>
+                          <ul className="text-xs text-default-500 space-y-1">
+                            <li>• Send only {CRYPTO_OPTIONS.find(c => c.id === selectedCrypto)?.name ?? selectedCrypto} to this address</li>
+                            <li>• Use the correct network ({CRYPTO_OPTIONS.find(c => c.id === selectedCrypto)?.network ?? '—'})</li>
+                            <li>• Balance updates after network confirmation</li>
+                          </ul>
+                        </div>
+                        <Button
+                          variant="flat"
+                          onPress={() => {
+                            setShowDepositDetails(false)
+                            setDepositId(null)
+                            setPayAddress('')
+                            setDepositStatus('PENDING')
+                          }}
+                          className="mt-2"
+                        >
+                          Back
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </Tab>
             <Tab key="withdraw" title="Withdraw">

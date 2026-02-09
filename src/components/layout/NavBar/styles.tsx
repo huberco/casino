@@ -31,7 +31,7 @@ export const StyledNavBar = styled.div`
     border-radius: 6px;
     transform: translateZ(0px);
     width: 100%;
-    background: rgb(31, 35, 48);
+    background: #04141C;
     box-shadow: rgba(0, 0, 0, 0.25) 0px 5px 8px -4px,
       rgba(0, 0, 0, 0.18) 0px 0px 20px 0px,
       rgba(0, 0, 0, 0.35) 0px 40px 34px -16px;

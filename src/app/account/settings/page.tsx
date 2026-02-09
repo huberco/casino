@@ -4,8 +4,7 @@ import { Accordion, AccordionItem, Avatar, Input, Select, SelectItem, Switch, Bu
 import { useState, useEffect } from "react";
 import { FaDesktop, FaLaptop, FaMobile, FaEye, FaEyeSlash, FaKey, FaCopy, FaRotateRight } from "react-icons/fa6";
 import { useAuth } from "@/contexts/AuthContext";
-import { gameApi } from "@/lib/api";
-import supabase from "@/lib/supabase";
+import { gameApi, authUtils } from "@/lib/api";
 
 export default function SettingsPage() {
   const { user, refreshProfile } = useAuth();
@@ -148,30 +147,13 @@ export default function SettingsPage() {
         return;
       }
 
-      // First, verify the current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      });
+      const response = await authUtils.changePassword(currentPassword, newPassword);
 
-      console.log(signInError);
-
-      if (signInError) {
-        setPasswordError("Current password is incorrect");
+      if (!response.success) {
+        setPasswordError(response.error || "Failed to update password");
         return;
       }
 
-      // If current password is correct, update to new password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (updateError) {
-        setPasswordError(updateError.message);
-        return;
-      }
-
-      // Success
       setPasswordSuccess("Password updated successfully!");
       clearPasswordFields();
       

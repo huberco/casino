@@ -1,5 +1,5 @@
 'use client'
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 
 //assets
 import FULL_LOGO from "../../../../assets/LOGO Gamblify/Full LOGO.png";
@@ -24,6 +24,7 @@ import Button from "@/components/Buttons/Button";
 import { Image } from "@heroui/react";
 import { FaMessage, FaRegMessage } from "react-icons/fa6";
 import { useModalStore } from "@/store/modalStore";
+import AccountButton from "@/components/Buttons/AccountButton/AccountButton";
 
 const NavBar = () => {
   // const {
@@ -42,6 +43,10 @@ const NavBar = () => {
     console.log("open Modal")
     openModal('auth')
   }
+
+  useEffect(()=>{
+    console.log("user", user)
+  },[user])
 
   return (
     <StyledNavBar>
@@ -88,9 +93,10 @@ const NavBar = () => {
             >
               {!isTabletScreen && (
                 <>
-                  {/* <TotalMoneyContainer money={user?.profile.balance || 0.00} />
+                <p>Balance: {user?.profile.balance || 0.00}</p>
+                  {/* <TotalMoneyContainer money={user?.profile.balance || 0.00} /> */}
 
-                  <CashierModal button={"Cashier"} />
+                  {/* <CashierModal button={"Cashier"} />
 
                   <CashierModal button={"Buy Crypto"} /> */}
                 </>
@@ -110,7 +116,7 @@ const NavBar = () => {
 
           {!isTabletScreen && (
             <div style={{ display: "flex" }}>
-              {/* {user?.profile && <AccountButton />} */}
+              {user?.profile && <AccountButton />}
 
               {/* <SearchModal /> */}
               {isChatBoxOpen === false ? (

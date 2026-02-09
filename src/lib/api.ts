@@ -29,6 +29,15 @@ apiClient.interceptors.request.use(
     // Always send cookies with requests (they contain the platform token)
     requestConfig.withCredentials = true
 
+    // Log request in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🚀 API Request: ${requestConfig.method?.toUpperCase()} ${requestConfig.baseURL}${requestConfig.url}`, {
+        headers: requestConfig.headers,
+        data: requestConfig.data,
+        withCredentials: requestConfig.withCredentials
+      });
+    }
+
     return requestConfig
   },
   (error) => {
@@ -58,47 +67,15 @@ apiClient.interceptors.response.use(
         return Promise.reject(new Error('Authentication expired'))
       }
 
-      // Don't redirect for token exchange endpoints - these should fail silently
-      if (url.includes('/auth/exchange')) {
-        console.log('🔐 Token exchange failed - clearing stored tokens')
-        // Clear stored tokens to prevent infinite loop
-        if (typeof window !== 'undefined') {
-          // Set flag to prevent multiple logout calls
-          sessionStorage.setItem('logout_in_progress', 'true')
-          
-          // Clear cookies by calling logout endpoint
-          try {
-            await apiClient.post('/auth/logout')
-          } catch (logoutError) {
-            // Ignore logout errors
-          }
-          // Clear localStorage/sessionStorage if any
-          localStorage.removeItem('supabase.auth.token')
-          sessionStorage.clear()
-        }
-        return Promise.reject(new Error('Token exchange failed'))
-      }
-
-      // For other endpoints, clear tokens and redirect to home page
-      console.log('🔐 Authentication expired, clearing tokens and redirecting to home page')
+      // For 401 on protected endpoints, clear cookie and redirect
+      console.log('🔐 Authentication expired, clearing session and redirecting')
       if (typeof window !== 'undefined') {
-        // Set flag to prevent multiple logout calls
         sessionStorage.setItem('logout_in_progress', 'true')
-        
-        // Clear stored tokens first
         try {
           await apiClient.post('/auth/logout')
-        } catch (logoutError) {
-          // Ignore logout errors
-        }
-        // Clear localStorage/sessionStorage if any
-        localStorage.removeItem('supabase.auth.token')
+        } catch (_) {}
         sessionStorage.clear()
-        
-        // Set a flag to prevent infinite loops
         sessionStorage.setItem('auth_redirect_flag', 'true')
-        
-        // Redirect to home page
         window.location.href = '/'
       }
       return Promise.reject(new Error('Authentication expired'))
@@ -196,16 +173,6 @@ export const authUtils = {
     return authCheckPromise
   },
 
-  // Exchange Supabase token for platform JWT
-  exchangeToken: async (supabaseToken: string): Promise<ApiResponse> => {
-    try {
-      const response = await apiClient.post('/auth/exchange', { token: supabaseToken })
-      return handleApiResponse(response)
-    } catch (error) {
-      return handleApiError(error)
-    }
-  },
-
   // Logout by calling the backend logout endpoint
   logout: async (): Promise<void> => {
     try {
@@ -216,7 +183,18 @@ export const authUtils = {
     }
   },
 
-
+  // Change password (requires current password)
+  changePassword: async (currentPassword: string, newPassword: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.patch('/auth/password', {
+        currentPassword,
+        newPassword
+      })
+      return handleApiResponse(response)
+    } catch (error) {
+      return handleApiError(error)
+    }
+  }
 }
 
 // Game-specific API methods
@@ -399,6 +377,42 @@ export const gameApi = {
     getCurrentGame: async (): Promise<ApiResponse> => {
       try {
         const response = await apiClient.get('/crash/current')
+        return handleApiResponse(response)
+      } catch (error) {
+        return handleApiError(error)
+      }
+    },
+
+    getRecentHistory: async (params: { limit?: number } = {}): Promise<ApiResponse> => {
+      try {
+        const { limit = 10 } = params
+        const response = await apiClient.get('/crash/recent-history', {
+          params: { limit }
+        })
+        return handleApiResponse(response)
+      } catch (error) {
+        return handleApiError(error)
+      }
+    },
+
+    getHistoryForModal: async (params: { limit?: number; onlyMyGames?: boolean } = {}): Promise<ApiResponse> => {
+      try {
+        const { limit = 100, onlyMyGames = false } = params
+        const response = await apiClient.get('/crash/history-modal', {
+          params: { limit, onlyMyGames: onlyMyGames ? 'true' : 'false' }
+        })
+        return handleApiResponse(response)
+      } catch (error) {
+        return handleApiError(error)
+      }
+    },
+
+    getAnalysis: async (params: { limit?: number; threshold?: number } = {}): Promise<ApiResponse> => {
+      try {
+        const { limit = 1000, threshold = 2 } = params
+        const response = await apiClient.get('/crash/analysis', {
+          params: { limit, threshold }
+        })
         return handleApiResponse(response)
       } catch (error) {
         return handleApiError(error)
@@ -1047,6 +1061,18 @@ export const gameApi = {
     getSupportedAssets: async (): Promise<ApiResponse> => {
       try {
         const response = await apiClient.get('/payment/assets')
+        return handleApiResponse(response)
+      } catch (error) {
+        return handleApiError(error)
+      }
+    },
+
+    // NOW Payments: start crypto deposit
+    startNowPaymentsDeposit: async (payload: {
+      pay_currency: string
+    }): Promise<ApiResponse> => {
+      try {
+        const response = await apiClient.post('/payment/deposits/nowpayments/start', payload)
         return handleApiResponse(response)
       } catch (error) {
         return handleApiError(error)

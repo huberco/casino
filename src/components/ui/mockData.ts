@@ -21,39 +21,39 @@ export const SECTIONS = [
         dropdownOptions: [
           {
             icon: "/assets/images/AK Originals.svg",
-            text: "AK Originals",
-            sidebarUrl: "/game",
+            text: "Crash",
+            sidebarUrl: "/game/crash",
           },
           {
             icon: "/assets/images/Bonus_Battle.svg",
             text: "Bonus Battles",
-            sidebarUrl: "/game",
+            sidebarUrl: "/game/battles",
           },
-          { icon: "/assets/images/Slots.svg", text: "Slots", sidebarUrl: "/game"},
-          { icon: "/assets/images/Hat.svg", text: "Game Shows", sidebarUrl: "/game"},
+          { icon: "/assets/images/Slots.svg", text: "Coinflip", sidebarUrl: "/game/coinflip"},
+          { icon: "/assets/images/Hat.svg", text: "Mine", sidebarUrl: "/game/mine"},
           {
             icon: "/assets/images/Live Casino.svg",
             text: "Live Casino",
-            sidebarUrl: "/game",
+            sidebarUrl: "/game/live-casino",
           },
           { icon: "/assets/images/Roulette.svg", text: "Roulette", sidebarUrl: "/game/roulette"},
-          { icon: "/assets/images/Blackjack.svg", text: "Blackjack", sidebarUrl: "/game"},
-          {
-            icon: "/assets/images/WithSidebets.svg",
-            text: "With Sidebets",
-            sidebarUrl: "/game",
-          },
-          {
-            icon: "/assets/images/Challenges.svg",
-            text: "With Challenges",
-            sidebarUrl: "/game",
-          },
-          { icon: "/assets/images/Challenges.svg", text: "Challenges", sidebarUrl: "/game"},
-          {
-            icon: "/assets/images/Rollercoaster.svg",
-            text: "Rollercoaster",
-            sidebarUrl: "/game",
-          },
+          { icon: "/assets/images/Blackjack.svg", text: "Blackjack", sidebarUrl: "/game/blackjack"},
+          // {
+          //   icon: "/assets/images/WithSidebets.svg",
+          //   text: "With Sidebets",
+          //   sidebarUrl: "/game/",
+          // },
+          // {
+          //   icon: "/assets/images/Challenges.svg",
+          //   text: "With Challenges",
+          //   sidebarUrl: "/game",
+          // },
+          // { icon: "/assets/images/Challenges.svg", text: "Challenges", sidebarUrl: "/game"},
+          // {
+          //   icon: "/assets/images/Rollercoaster.svg",
+          //   text: "Coinflip",
+          //   sidebarUrl: "/game/coinflip",
+          // },
         ],
       },
       {

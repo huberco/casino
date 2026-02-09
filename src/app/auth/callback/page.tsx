@@ -1,56 +1,74 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import supabase from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
-import { authUtils } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || ''
 
 export default function AuthCallback() {
   const router = useRouter()
-  const { updateUser, fetchUserProfile } = useAuth()
+  const searchParams = useSearchParams()
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [message, setMessage] = useState('')
+
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
-        // Handle the OAuth callback
-        const { data, error } = await supabase.auth.getSession()
-
-        console.log('🔄 Auth callback data:', data)
-        console.log('🔄 Auth callback error:', error)
-
-        if (error) {
-          console.error('Auth callback error:', error)
-          router.push('/?error=auth_callback_failed')
-          return
-        }
-        if (data.session) {
-          console.log('🔄 Supabase session found, AuthContext will handle token exchange...')
-          
-          // AuthContext will automatically handle token exchange via onAuthStateChange
-          // Just redirect to home page - the AuthContext will complete the authentication
-          console.log('✅ OAuth authentication successful, redirecting...')
-          router.push('/')
-        } else {
-          console.log('❌ No session found in callback')
-          router.push('/?error=no_session')
-        }
-      } catch (error) {
-        console.error('Unexpected error in auth callback:', error)
-        router.push('/?error=unexpected_error')
-      }
+    const token = searchParams.get('token')
+    if (token) {
+      // Email verification callback: backend verify-email with token
+      fetch(`${BACKEND_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setStatus('success')
+            setMessage(data.message || 'Email verified. You can now sign in.')
+            setTimeout(() => router.push('/?verified=1'), 2000)
+          } else {
+            setStatus('error')
+            setMessage(data.error || 'Verification failed')
+          }
+        })
+        .catch(() => {
+          setStatus('error')
+          setMessage('Verification request failed')
+        })
+    } else {
+      setStatus('error')
+      setMessage('Missing verification token')
     }
-
-    handleAuthCallback()
-  }, [router])
-
-  
+  }, [searchParams, router])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold text-white mb-2">Completing sign in...</h2>
-        <p className="text-gray-400">Please wait while we finish setting up your account.</p>
+        {status === 'loading' && (
+          <>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Verifying your email...</h2>
+          </>
+        )}
+        {status === 'success' && (
+          <>
+            <h2 className="text-xl font-semibold text-green-400 mb-2">Email verified</h2>
+            <p className="text-gray-400">{message}</p>
+            <p className="text-sm text-gray-500 mt-2">Redirecting to sign in...</p>
+          </>
+        )}
+        {status === 'error' && (
+          <>
+            <h2 className="text-xl font-semibold text-red-400 mb-2">Verification failed</h2>
+            <p className="text-gray-400">{message}</p>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="mt-4 px-4 py-2 bg-primary rounded-lg text-background"
+            >
+              Go to home
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
