@@ -222,8 +222,8 @@ const PaymentTransactionHistory: React.FC<PaymentTransactionHistoryProps> = ({
                     const isError = data.status === 'failed';
                     addToast({
                         title: isSuccess ? 'Payment updated' : isError ? 'Payment failed' : 'Payment update',
-                        message: data.message,
-                        type: isSuccess ? 'success' : isError ? 'error' : 'default',
+                        description: data.message,
+                        color: isSuccess ? 'success' : isError ? 'danger' : 'default',
                     });
                 }
             };
