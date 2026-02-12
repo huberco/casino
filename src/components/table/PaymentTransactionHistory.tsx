@@ -150,14 +150,21 @@ const PaymentTransactionHistory: React.FC<PaymentTransactionHistoryProps> = ({
             });
 
             if (response.success && response.data) {
+                // Backend returns { success, data: { transactions, pagination } }; api layer wraps so payload is at response.data.data
+                const payload = (response.data as any)?.data ?? response.data;
+                const transactions = payload.transactions ?? [];
+                const serverPagination = payload.pagination;
+                const totalItems = serverPagination?.total ?? transactions.length;
+                const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
                 setData({
-                    transactions: response.data.transactions || [],
+                    transactions,
                     pagination: {
                         currentPage: currentPage,
-                        totalPages: Math.ceil((response.data.transactions?.length || 0) / itemsPerPage),
-                        totalItems: response.data.transactions?.length || 0,
+                        totalPages,
+                        totalItems,
                         itemsPerPage: itemsPerPage,
-                        hasNextPage: currentPage < Math.ceil((response.data.transactions?.length || 0) / itemsPerPage),
+                        hasNextPage: serverPagination?.hasMore ?? currentPage < totalPages,
                         hasPrevPage: currentPage > 1
                     }
                 });
