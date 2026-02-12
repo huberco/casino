@@ -9,7 +9,7 @@ import DropdownOptions from "./DropdownOptions";
 import SideBarClosed from "./SideBarClosed";
 import SidebarOption from "./SidebarOption";
 import { StyledOpenedSidebar } from "./StyledSidebar";
-import { Image } from "@heroui/react";
+import { Image, Link } from "@heroui/react";
 import SvgIcon from "@/components/common/SvgIcon/SvgIcon";
 
 interface DropdownOption {
@@ -119,10 +119,6 @@ const SideBar = () => {
   return isSidebarOpen ? (
     <StyledOpenedSidebar>
       <div className="sidebar-content">
-        <div>
-          <Image src="/assets/images/AK BALANCE.svg" width={"100%"} alt="Balance" />
-        </div>
-
         {sections.map((section, sectionIndex) => (
           <div key={sectionIndex}>
             {sectionIndex === 0 ? (
@@ -195,7 +191,16 @@ const SideBar = () => {
         <div className="divider" />
 
         <div className="payment">
-          <Button className="buy-crypto">Buy Crypto</Button>
+          <Link
+            href="https://t.me/bettyjk_0915"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="buy-crypto"
+          >
+            <Button>
+              Contact Us
+            </Button>
+          </Link>
 
           <div className="payment-methods">
             <Image src="/assets/images/Frame (18).svg" width={"100%"} alt="Visa" />
