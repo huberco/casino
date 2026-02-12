@@ -289,6 +289,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
                 'chat_user_joined',
                 'chat_user_left',
                 'chat_error',
+                'deposit:status-updated',
+                'payment_transaction_updated',
                 'server_settings',
                 'server_settings_error',
                 'server_settings_updated'

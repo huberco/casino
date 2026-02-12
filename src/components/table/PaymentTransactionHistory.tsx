@@ -18,7 +18,8 @@ import {
     Card,
     CardBody,
     CardHeader,
-    Divider
+    Divider,
+    addToast
 } from '@heroui/react';
 import { gameApi } from '@/lib/api';
 import { useWebSocket } from '@/contexts/socketContext';
@@ -198,25 +199,43 @@ const PaymentTransactionHistory: React.FC<PaymentTransactionHistoryProps> = ({
         }
     }, [showStats]);
 
-    // Listen for real-time balance updates (new transactions)
+    // Listen for real-time balance updates and payment status (deposit/withdrawal)
     useEffect(() => {
         if (isConnected) {
             const handleBalanceUpdate = (data: any) => {
-                console.log('💰 Balance update received in PaymentTransactionHistory:', data);
-                
-                // Refresh the transaction list when a new transaction is processed
                 if (data.reason === 'deposit_success' || data.reason === 'withdrawal_success' || data.reason === 'withdrawal_failed') {
                     fetchHistory();
-                    if (showStats) {
-                        fetchStats();
-                    }
+                    if (showStats) fetchStats();
+                }
+            };
+
+            const handleDepositStatusUpdated = () => {
+                fetchHistory();
+                if (showStats) fetchStats();
+            };
+
+            const handlePaymentTransactionUpdated = (data: { status: string; message?: string }) => {
+                fetchHistory();
+                if (showStats) fetchStats();
+                if (data.message) {
+                    const isSuccess = data.status === 'completed';
+                    const isError = data.status === 'failed';
+                    addToast({
+                        title: isSuccess ? 'Payment updated' : isError ? 'Payment failed' : 'Payment update',
+                        message: data.message,
+                        type: isSuccess ? 'success' : isError ? 'error' : 'default',
+                    });
                 }
             };
 
             on('user_balance_update', handleBalanceUpdate);
+            on('deposit:status-updated', handleDepositStatusUpdated);
+            on('payment_transaction_updated', handlePaymentTransactionUpdated);
 
             return () => {
                 off('user_balance_update', handleBalanceUpdate);
+                off('deposit:status-updated', handleDepositStatusUpdated);
+                off('payment_transaction_updated', handlePaymentTransactionUpdated);
             };
         }
     }, [isConnected, on, off, fetchHistory, fetchStats, showStats]);
