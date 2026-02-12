@@ -379,7 +379,7 @@ export default function WalletPage() {
                         >
                           <Avatar
                             size="sm"
-                            src={`/assets/images/tokens/${crypto.symbol.toLowerCase()}.webp`}
+                            src={`/assets/images/tokens/${crypto.symbol.toLowerCase()}.svg`}
                             name={crypto.symbol}
                             className="shrink-0"
                           />
