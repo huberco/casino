@@ -9,7 +9,7 @@ export default function AccountLayout({
 }) {
   return (
     <div className="min-h-screen  relative">
-      <div className="flex max-w-7xl mx-auto relative z-10 pb-12">
+      <div className="flex max-w-7xl mx-auto relative z-10 pb-12 pt-8">
         <Sidebar />
         <main className="flex-1 p-6 pb-8">
           {children}
