@@ -511,7 +511,7 @@ export default function AuthModal({ onClose }: AuthModalProps = {}) {
                       </div>
 
                       <Button
-                        className="w-full bg-primary text-background font-semibold"
+                        className="w-full primary-button text-background font-semibold"
                         type="submit"
                         isLoading={isLoading}
                         disabled={isLoading}
@@ -556,7 +556,7 @@ export default function AuthModal({ onClose }: AuthModalProps = {}) {
                             />
                             <Button
                               type="submit"
-                              className="w-full bg-primary text-background font-semibold"
+                              className="w-full primary-button text-background font-semibold"
                               isLoading={isLoading}
                               disabled={isLoading}
                             >
@@ -694,9 +694,8 @@ export default function AuthModal({ onClose }: AuthModalProps = {}) {
                       I agree to the Terms of Service and Privacy Policy
                     </Checkbox>
                   </div>
-
                   <Button
-                    className="w-full bg-primary text-background font-semibold"
+                    className="w-full primary-button text-background font-semibold"
                     type="submit"
                     isLoading={isLoading}
                     disabled={isLoading}

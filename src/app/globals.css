@@ -13,7 +13,7 @@
   --color-background: var(--background);
   --color-background-alt: var(--background-alt);
   --color-foreground: var(--foreground);
-  --color-primary: #A3E635;
+  --color-primary: rgb(255, 232, 26);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-audiowide: var(--font-audiowide);

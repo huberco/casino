@@ -3,12 +3,14 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || ''
 
 function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { fetchUserProfile } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
@@ -24,13 +26,17 @@ function VerifyEmailContent() {
       credentials: 'include',
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.success) {
           setStatus('success')
           setMessage(data.message || 'Email verified. You can now sign in.')
-          if (data.redirect) {
-            setTimeout(() => router.push(data.redirect || '/?verified=1'), 2000)
+          try {
+            await fetchUserProfile()
+          } catch {
+            // Cookie is set; profile will load on next navigation
           }
+          const redirect = data.redirect || '/?verified=1'
+          setTimeout(() => router.push(redirect), 2000)
         } else {
           setStatus('error')
           setMessage(data.error || 'Verification failed')
@@ -40,7 +46,7 @@ function VerifyEmailContent() {
         setStatus('error')
         setMessage('Verification request failed')
       })
-  }, [searchParams, router])
+  }, [searchParams, router, fetchUserProfile])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
