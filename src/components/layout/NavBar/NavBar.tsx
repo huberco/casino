@@ -93,7 +93,7 @@ const NavBar = () => {
             >
               {!isTabletScreen && (
                 <>
-                <p>Balance: {user?.profile.balance || 0.00}</p>
+                <p>Balance: {user?.profile.balance.toFixed(3) || 0.00}</p>
                   {/* <TotalMoneyContainer money={user?.profile.balance || 0.00} /> */}
 
                   {/* <CashierModal button={"Cashier"} />

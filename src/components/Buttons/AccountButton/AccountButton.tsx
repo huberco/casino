@@ -1,11 +1,10 @@
-import React, { useContext } from "react";
-
-//assets
+import React from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGameSettings } from "@/contexts/GameSettingsContext";
-import { StyleAccountButton } from "./StyledAccountButton";
-import AccountDropdown from "@/components/dropdown/AccountDropdown";
-import { Button, Image } from "@heroui/react";
+import { DropdownTrigger, DropdownItem, DropdownMenu, Avatar, Dropdown } from "@heroui/react";
+import { ACCOUNT_DROPDOWN_OPTIONS } from "@/components/ui/mockData";
+import SvgIcon from "@/components/common/SvgIcon/SvgIcon";
 
 //model assetss
 
@@ -15,74 +14,43 @@ const AccountButton = () => {
   const { isTabletScreen, toggleDropdown, openDropdown } = useGameSettings();
   const { user } = useAuth();
 
-  const handleBtnClick = () => {
-    toggleDropdown("account");
-  };
-
   return (
-    <StyleAccountButton>
-      {isTabletScreen ? (
-        <button className="button" onClick={handleBtnClick}>
-          <Image src={user?.profile?.avatar} alt={user?.profile?.username || "User"}  />
-        </button>
-      ) : (
-        <Button className="account-button" onClick={handleBtnClick}>
-          <div className="rank-icon">
-            <Image src={user?.profile?.avatar} alt={user?.profile?.username || "User"}  />
-          </div>
-          <div style={{ margin: "-2px 10px 0px 1px", minWidth: "50px" }}>
-            <div className="account-text">Account</div>
-            <div color="#E5A480" className="account-border"></div>
-          </div>
-          <svg
-            width="8"
-            height="6"
-            viewBox="0 0 8 6"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0.934258 -6.17707e-07L7.06574 -8.16755e-08C7.46509 -4.67634e-08 7.70329 0.445072 7.48177 0.77735L4.41602 5.37596C4.21811 5.67283 3.78189 5.67283 3.58397 5.37596L0.518233 0.777349C0.296715 0.445072 0.534911 -6.52619e-07 0.934258 -6.17707e-07Z"
-              fill="currentColor"
-            ></path>
-          </svg>
-        </Button>
-      )}
-      {openDropdown === "account" ? (
+    <Dropdown placement="bottom-end">
+      <DropdownTrigger>
+        <Avatar
+          isBordered
+          as="button"
+          className="transition-transform"
+          src={user?.profile?.avatar}
+        />
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Profile Actions" variant="flat">
         <>
-          <div
-            onClick={() => toggleDropdown("")}
-            style={{
-              position: "fixed",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              top: "0",
-              left: "0",
-              right: "0",
-              bottom: "0",
-              cursor: "pointer",
-              height: "100%",
-            }}
-          ></div>
-          <div
-            style={{
-              position: "absolute",
-              top: isTabletScreen ? "auto" : "50px",
-              bottom: isTabletScreen ? "50px" : "auto",
-              background: "#1F2330",
-              borderRadius: "6px",
-              boxShadow: " 0px 5px 8px 0px rgba(0, 0, 0, 0.25)",
-              width: "200px",
-              height: "430px",
-              zIndex: "10",
-            }}
-          >
-            <AccountDropdown userName="Pablo Escobar" />
-          </div>
+          {ACCOUNT_DROPDOWN_OPTIONS.map((option) => (
+            <DropdownItem key={option.label} textValue={option.label}>
+              <Link
+                href={option.route}
+                className="dropdown-option link flex items-center gap-2"
+                onClick={() => toggleDropdown("")}
+              >
+                <SvgIcon src={option.icon} alt={option.label} width={20} height={20} className="text-white shrink-0" />
+                <span>{option.label}</span>
+              </Link>
+            </DropdownItem>
+          ))}
+          <DropdownItem key="logout" textValue="Log Out">
+            <Link
+              href="/"
+              className="dropdown-option link flex items-center gap-2"
+              onClick={() => toggleDropdown("")}
+            >
+              <SvgIcon src="/assets/modelImages/Frame (12).svg" alt="logout" width={20} height={20} className="text-white shrink-0" />
+              <span>Log Out</span>
+            </Link>
+          </DropdownItem>
         </>
-      ) : null}
-    </StyleAccountButton>
+      </DropdownMenu>
+    </Dropdown>
   );
 };
 

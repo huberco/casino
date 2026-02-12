@@ -12,34 +12,36 @@ const AccountDropdown = ({ userName }) => {
   const { user } = useAuth();
 
   return (
-    <StyledAccountDropdown>
-      <p className="hello-text">Hello, {user?.profile?.username}</p>
-
+    <>
       {ACCOUNT_DROPDOWN_OPTIONS.map((option, index) => (
+
+        <DropdownItem key="logout" color="danger">
+          <Link
+            className="dropdown-option link"
+            href={option.route}
+            key={index}
+            onClick={() => toggleDropdown("")}
+          >
+            <SvgIcon src={option.icon} alt={option.label} className="text-shadow-white" />
+            <span>{option.label}</span>
+          </Link>
+        </DropdownItem>
+      ))}
+      <DropdownItem>
         <Link
           className="dropdown-option link"
-          href={option.route}
-          key={index}
-          onClick={() => toggleDropdown("")}
+          href={"/"}
+          onClick={() => {
+            updateLoggedIn(false);
+            toggleDropdown("");
+          }}
         >
-          <SvgIcon src={option.icon} alt={option.label} className="text-shadow-white"/>
-          <span>{option.label}</span>
+          {/* <OUT /> */}
+          <SvgIcon src="/assets/modelImages/Frame (12).svg" alt="logout" />
+          <span>Log Out</span>
         </Link>
-      ))}
-
-      <Link
-        className="dropdown-option link"
-        href={"/"}
-        onClick={() => {
-          updateLoggedIn(false);
-          toggleDropdown("");
-        }}
-      >
-        {/* <OUT /> */}
-        <SvgIcon src="/assets/modelImages/Frame (12).svg" alt="logout" />
-        <span>Log Out</span>
-      </Link>
-    </StyledAccountDropdown>
+      </DropdownItem >
+    </>
   );
 };
 

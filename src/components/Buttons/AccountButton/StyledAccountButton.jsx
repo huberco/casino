@@ -10,6 +10,8 @@ export const StyleAccountButton = styled.div`
     margin-left: 12px;
     text-align: left;
     letter-spacing: 0px;
+    background:transparent;
+    border:1 solid
 
     & > * {
       margin-right: 8px;
@@ -51,13 +53,6 @@ export const StyleAccountButton = styled.div`
       width: 100%;
       height: 5px;
       border-radius: 99px;
-      background: linear-gradient(
-        90deg,
-        rgb(229, 164, 128) 0%,
-        rgb(229, 164, 128) 0%,
-        rgba(203, 215, 255, 0.1) 0%,
-        rgba(203, 215, 255, 0.1) 100%
-      );
     }
 
     svg {
