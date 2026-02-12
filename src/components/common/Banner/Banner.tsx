@@ -17,11 +17,11 @@ const Banner = () => {
       <div className="main-content w-full @xl:w-auto">
         <Image src={`/assets/LOGO Gamblify/Full LOGO.png`} alt="logo" style={{ maxHeight: "40px" }} />
         <p className="main-heading">
-          By default, you will be credited with 10 USDT to your account. This is for you to test the platform and get familiar with the interface.
+          By default, you will be credited with <span className="font-bold text-primary">10 USDT</span> to your account. This is for you to test the platform and get familiar with the interface.
           You can deposit more USDT to your account to start playing.
         </p>
-        <Link href="/account/wallet">
-          <Button className="primary-button">Deposit</Button>
+        <Link href="/account/wallet" className="w-full">
+          <Button className="primary-button w-full">Deposit</Button>
         </Link>
 
         {/* <RegisterModal buttonText="REGISTER NOW" modalOption="register" /> */}
