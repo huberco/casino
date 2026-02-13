@@ -11,8 +11,13 @@ import SvgIcon from "@/components/common/SvgIcon/SvgIcon";
 //models
 
 const AccountButton = () => {
-  const { isTabletScreen, toggleDropdown, openDropdown } = useGameSettings();
-  const { user } = useAuth();
+  const { toggleDropdown } = useGameSettings();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = () => {
+    toggleDropdown("");
+    signOut();
+  };
 
   return (
     <Dropdown placement="bottom-end">
@@ -38,15 +43,16 @@ const AccountButton = () => {
               </Link>
             </DropdownItem>
           ))}
-          <DropdownItem key="logout" textValue="Log Out">
-            <Link
-              href="/"
-              className="dropdown-option link flex items-center gap-2"
-              onClick={() => toggleDropdown("")}
-            >
+          <DropdownItem
+            key="logout"
+            textValue="Log Out"
+            onPress={handleLogout}
+            className="cursor-pointer"
+          >
+            <div className="dropdown-option link flex items-center gap-2">
               <SvgIcon src="/assets/modelImages/Frame (12).svg" alt="logout" width={20} height={20} className="text-white shrink-0" />
               <span>Log Out</span>
-            </Link>
+            </div>
           </DropdownItem>
         </>
       </DropdownMenu>
