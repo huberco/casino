@@ -1,8 +1,20 @@
 import { io, Socket } from 'socket.io-client'
 import { config } from './config'
 
+/**
+ * Socket.IO client expects HTTP/HTTPS URL (it does the handshake then upgrades to WebSocket).
+ * If env is set to ws:// or wss://, convert to http:// or https://.
+ */
+function getSocketIoUrl(url: string): string {
+  if (!url || typeof url !== 'string') return url
+  const u = url.trim()
+  if (u.startsWith('ws://')) return 'http://' + u.slice(5)
+  if (u.startsWith('wss://')) return 'https://' + u.slice(6)
+  return u
+}
+
 // Socket.IO configuration - connect directly to backend in development, via proxy in production
-const SOCKET_URL = config.api.wsUrl
+const SOCKET_URL = getSocketIoUrl(config.api.wsUrl)
 
 console.log(`🔧 WebSocket Mode: ${config.isDevelopment ? 'Development (Direct Backend)' : 'Production (Proxy)'}`)
 console.log(`🔗 WebSocket URL: ${SOCKET_URL}`)

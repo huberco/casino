@@ -192,7 +192,7 @@ const SideBar = () => {
 
         <div className="payment">
           <Link
-            href="https://t.me/bettyjk_0915"
+            href="https://t.me/hyperbuildx"
             target="_blank"
             rel="noopener noreferrer"
             className="buy-crypto"
