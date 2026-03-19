@@ -1,1 +1,7 @@
-api_trading.env
+node_modules/
+dist/
+*.log
+.env
+history.toml
+price_monitor.toml
+config.json
